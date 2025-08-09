@@ -21,13 +21,20 @@ logging.basicConfig(
 def http_get(path: str, params: Optional[dict] = None, max_retries: int = 4, timeout: int = 30) -> dict:
     url = f"{API_BASE}{path}"
     backoff = 1.0
-    for _ in range(max_retries):
+    for attempt in range(max_retries):
         resp = requests.get(url, headers=HEADERS, params=params, timeout=timeout)
         if resp.status_code == 200:
+            logging.info("✅\tSuccess: %s \t(attempt %d/%d)", path, attempt + 1, max_retries)
             return resp.json()
         if resp.status_code in (429, 500, 502, 503, 504):
+            logging.warning(
+                "⚠️\tHTTP %s on %s \t(attempt %d/%d). Backing off %.1f sec...",
+                resp.status_code, path, attempt + 1, max_retries, backoff
+            )
             time.sleep(backoff); backoff *= 2; continue
+        logging.error("❌\tHTTP %s on %s. No retry for this status.", resp.status_code, path)
         resp.raise_for_status()
+    logging.error("❌\tFailed after %d attempts on %s", max_retries, path)
     resp.raise_for_status()
 
 # format the time into UTC
@@ -45,12 +52,26 @@ def build_query(handle: str,
                  since: Optional[str] = None,
                  until: Optional[str] = None) -> str:
     parts = [f"from:{handle}", "filter:replies"]
-    if not include_retweets: parts.append("-filter:retweets")
-    if not include_quotes: parts.append("-filter:quote")
-    if not include_self_threads: parts.append("-filter:self_threads")
+    if not include_retweets: 
+        parts.append("-filter:retweets") 
+    else: 
+        parts.append("filter:retweets")
+    
+    if not include_quotes: 
+        parts.append("-filter:quote")
+    else: 
+        parts.append("filter:quote")
+        
+    if not include_self_threads: 
+        parts.append("-filter:self_threads")
+    else:
+        parts.append("filter:self_threads")
+    
     if since: parts.append(f"since:{format_time_utc(since)}")
     if until: parts.append(f"until:{format_time_utc(until)}")
-    return " ".join(parts)
+    query = " ".join(parts)
+    logging.info("Built query:\t%s ", query)
+    return query
 
 def search_grok_replies(handle="grok",
                             since=None, until=None,
@@ -154,4 +175,4 @@ if __name__ == "__main__":
         include_retweets=False,
         out_path="grok_data.json"
     )
-    print("Saved raw to grok_data.json")
+    logging.info("Saved data to grok_data.json")
