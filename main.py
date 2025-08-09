@@ -173,6 +173,6 @@ if __name__ == "__main__":
         include_self_threads=False,
         include_quotes=False,
         include_retweets=False,
-        out_path="grok_data.json"
+        out_path="grok_data/grok_data.json"
     )
-    logging.info("Saved data to grok_data.json")
+    logging.info("Saved data to grok_data/grok_data.json")

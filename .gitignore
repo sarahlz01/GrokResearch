@@ -1,4 +1,4 @@
 .env
 .DS_Store
 /venv
-grok_data.json
+/grok_data
