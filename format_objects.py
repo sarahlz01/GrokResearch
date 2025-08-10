@@ -203,8 +203,6 @@ def build_conversation_objects_by_threads(
 
             seen_ids = set()
             merged_tweets: List[dict] = []
-            merged_pages_meta: List[dict] = []
-
             for rid in group_rids:
                 for page in per_rid_pages_trimmed.get(rid, []):
                     # filter tweets for this merged branch (dedupe by tweet id; keep root)
@@ -220,18 +218,9 @@ def build_conversation_objects_by_threads(
                     if filtered:
                         merged_tweets.extend(filtered)
 
-                    # always record pagination metadata (no tweets inside 'pages')
-                    merged_pages_meta.append({
-                        "has_next_page": page.get("has_next_page"),
-                        "next_cursor": page.get("next_cursor"),
-                        "status": page.get("status"),
-                        "msg": page.get("msg"),
-                    })
-
             threads_out.append({
                 "threadId": representative,
                 "tweets": merged_tweets,
-                "pages": merged_pages_meta
             })
 
         conversations.append({
