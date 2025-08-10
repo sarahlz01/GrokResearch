@@ -131,7 +131,7 @@ def get_tweets(handle="grok",
         threads[conv_id] = fetch_thread_pages(rep_tweet_id)
 
     # 4) save a formatted payload
-    payload = build_conversation_objects(conv_map, threads)
+    payload = build_conversation_objects(threads)
     save_json(payload, out_path)
     return payload
     
