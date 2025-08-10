@@ -1,11 +1,13 @@
 import os
+import sys
+assert sys.prefix != sys.base_prefix, "Make sure to activate the venv by calling:\tsource venv/bin/activate"
+
 import time
 import logging
 import json
 from typing import Dict, List, Optional
 import requests
 from dotenv import load_dotenv
-import sys
 from format_objects import build_query, save_json, build_conversation_objects
 load_dotenv()
 API_BASE = "https://api.twitterapi.io"
@@ -13,7 +15,6 @@ API_KEY = os.getenv("TWITTERIO_API_KEY")
 HEADERS = {"X-API-Key": API_KEY}
 
 assert API_KEY, "Set TWITTERIO_API_KEY env var."
-assert sys.prefix != sys.base_prefix, "Make sure to activate the venv by calling: source venv/bin/activate"
 
 # logging config
 logging.basicConfig(
