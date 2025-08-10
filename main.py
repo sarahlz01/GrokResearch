@@ -4,11 +4,11 @@ assert sys.prefix != sys.base_prefix, "Make sure to activate the venv by calling
 
 import time
 import logging
-import json
 from typing import Dict, List, Optional
 import requests
 from dotenv import load_dotenv
-from format_objects import build_query, save_json, build_conversation_objects
+
+from format_objects import build_query, save_json, build_conversation_objects_by_threads
 
 load_dotenv()
 API_BASE = "https://api.twitterapi.io"
@@ -31,7 +31,7 @@ def http_get(path: str, params: Optional[dict] = None, max_retries: int = 4, tim
     for attempt in range(max_retries):
         resp = requests.get(url, headers=HEADERS, params=params, timeout=timeout)
         if resp.status_code == 200:
-            logging.info("✅ Success: %s (attempt %d/%d)", path, attempt + 1, max_retries)
+            # !! dont need to log if theres a success  logging.info("✅ Success: %s (attempt %d/%d)", path, attempt + 1, max_retries)
             return resp.json()
         if resp.status_code in (429, 500, 502, 503, 504):
             logging.warning(
@@ -71,7 +71,7 @@ def search_grok_replies(handle="grok",
 def collect_reply_ids_by_conversation(search_pages: List[dict]) -> Dict[str, List[str]]:
     """
     Build {conversationId: [grok_reply_tweet_ids...]} from raw search pages.
-    Keep *all* Grok reply ids per conversation (not just one representative).
+    Keep *all* Grok reply ids per conversation (order of discovery preserved).
     """
     conv_to_ids: Dict[str, List[str]] = {}
     for page in search_pages:
@@ -114,10 +114,22 @@ def get_tweets(handle="grok",
                include_retweets=False,
                out_path="grok_data/data.json"):
     """
-    In-memory 'seen' map, no persistence:
-      seen: { conversationId: set(grokReplyIdsAlreadyFetched) }
-    For each conversation, fetch thread_context ONLY for Grok reply ids not yet seen
-    during this run. Append all fetched pages into threads[conv_id].
+    New structure:
+      [
+        {
+          "conversationId": "<id>",
+          "originalTweet": { ...trimmed tweet... } | null,
+          "threads": [
+            {
+              "threadId": "<grok_reply_id>",
+              "tweets": [ ...trimmed tweets returned by thread_context for this reply... ],
+              "pages": [ { tweets:[...], has_next_page, next_cursor, status, msg }, ... ]
+            },
+            ...
+          ]
+        },
+        ...
+      ]
     """
     # 1) raw search pages
     search_pages = search_grok_replies(
@@ -125,41 +137,42 @@ def get_tweets(handle="grok",
         include_self_threads=include_self_threads, include_quotes=include_quotes, include_retweets=include_retweets
     )
 
-    # 2) collect ALL grok reply ids per conversation
+    # 2) collect ALL grok reply ids per conversation (ordered)
     conv_to_reply_ids = collect_reply_ids_by_conversation(search_pages)
     conv_ids = list(conv_to_reply_ids.keys())
     logging.info("Search yielded %d conversations", len(conv_ids))
     if limit_threads:
         conv_ids = conv_ids[:limit_threads]
 
-    # 3) in-memory seen map for this run
+    # 3) In-memory "seen" map for this run only
     seen: Dict[str, set] = {}
 
-    # 4) raw thread pages per conversation (only for *new* Grok reply ids in each conversation)
-    threads: Dict[str, List[dict]] = {}
+    # 4) Fetch per thread (reply id) and organize by conversation -> reply id -> pages
+    #    threads_by_conv: Dict[str, Dict[str, List[dict]]]
+    threads_by_conv: Dict[str, Dict[str, List[dict]]] = {}
+
     for conv_id in conv_ids:
         reply_ids = conv_to_reply_ids.get(conv_id, [])
         seen_ids = seen.setdefault(conv_id, set())
 
+        # Only fetch for reply ids not seen in this run yet (in case of duplicates across pages)
         new_ids = [rid for rid in reply_ids if rid not in seen_ids]
         if not new_ids:
             logging.info("Conversation %s: no new Grok reply ids (skipping fetch).", conv_id)
-            threads.setdefault(conv_id, [])
             continue
 
-        logging.info("Conversation %s: fetching %d new branch(es).", conv_id, len(new_ids))
+        logging.info("Conversation %s: fetching %d thread(s).", conv_id, len(new_ids))
         for rid in new_ids:
             pages = fetch_thread_pages(rid)
-            threads.setdefault(conv_id, []).extend(pages)
-            seen_ids.add(rid)  # mark as seen in-memory
+            threads_by_conv.setdefault(conv_id, {})[rid] = pages
+            seen_ids.add(rid)
 
-    # 5) save a formatted payload (conversation objects w/ your schema & ordering)
-    payload = build_conversation_objects(threads)
+    # 5) Build conversation objects grouped by threads and save
+    payload = build_conversation_objects_by_threads(threads_by_conv)
     save_json(payload, out_path)
     return payload
 
 if __name__ == "__main__":
-    # widen the window slightly when validating counts if needed
     payload = get_tweets(
         handle="grok",
         since="2025-08-05 00:00:00",
