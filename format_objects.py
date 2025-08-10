@@ -8,6 +8,8 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S"
 )
+logger = logging.getLogger(__name__)
+
 
 def format_time_utc(ts: str) -> str:
     ts = ts.strip()
@@ -96,6 +98,7 @@ def _items_from_thread_page(page: dict) -> List[dict]:
     return []
 
 # ---------- NEW: Build conversations grouped by threads (reply IDs) ----------
+
 def build_conversation_objects_by_threads(
     conv_to_reply_pages: Dict[str, Dict[str, List[dict]]]
 ) -> List[dict]:
@@ -103,52 +106,121 @@ def build_conversation_objects_by_threads(
     Input:
       {
         "<conversationId>": {
-          "<grok_reply_id_1>": [ {<raw page>}, {<raw page>}, ... ],
-          "<grok_reply_id_2>": [ ... ],
+          "<grok_reply_id_1>": [ {<raw page>}, ... ],
+          "<grok_reply_id_2>": [ {<raw page>}, ... ],
           ...
         },
         ...
       }
 
-    Output per conversation:
+    Output per conversation (NO originalTweet at top level):
       {
         "conversationId": "<id>",
         "threads": [
-          { "threadId": "<grok_reply_id>", "tweets": [...], "pages": [ { ...page meta/tweets... } ] },
+          {
+            "threadId": "<merged_grok_reply_id_for_branch>",
+            "tweets": [ ...trimmed tweets for this branch (root INCLUDED if present)... ],
+            "pages": [
+              { "has_next_page": bool, "next_cursor": str|None, "status": str|None, "msg": str|None },
+              ...
+            ]
+          },
           ...
         ]
       }
     """
-    conversations = []
+    conversations: List[dict] = []
 
     for conv_id, threads_dict in (conv_to_reply_pages or {}).items():
-        # Build threads array in order of discovery: iterate reply ids in the order they appear in input
-        threads_out = []
+        root_id = conv_id  # included inside threads
+
+        # 1) Build id -> inReplyToId map from ALL raw pages in this conversation
+        reply_map: Dict[str, Optional[str]] = {}
+        for _, pages in threads_dict.items():
+            for page in pages or []:
+                # pull items from either 'replies' or 'tweets'
+                items = _items_from_thread_page(page)
+                for tw in items:
+                    tid = tw.get("id")
+                    if tid:
+                        reply_map[tid] = tw.get("inReplyToId")
+
+        # 2) Pre-trim pages per reply id (we trim tweets now; pages will hold only pagination later)
+        per_rid_pages_trimmed: Dict[str, List[dict]] = {}
+        rid_order: List[str] = []
         for rid, pages in threads_dict.items():
-            # Per-thread tweets: exactly what the thread_context returned (trimmed)
-            thread_tweets = []
-            page_objs = []
+            rid_order.append(rid)
+            trimmed_pages: List[dict] = []
             for page in pages or []:
                 raw_items = _items_from_thread_page(page)
-
-                # Trim tweets (preserve arrival order per page)
                 page_tweets = [save_fields(t) for t in raw_items]
-
-                # Append to the flattened per-thread list (as-is; no cross-page dedupe)
-                thread_tweets.extend(page_tweets)
-
-                # Per-page metadata
-                page_objs.append({
+                # store tweets temporarily for merging; we won't put them under 'pages' in the final output
+                trimmed_pages.append({
+                    "tweets": page_tweets,
                     "has_next_page": page.get("has_next_page"),
                     "next_cursor": page.get("next_cursor"),
                     "status": page.get("status"),
                     "msg": page.get("msg"),
                 })
+            per_rid_pages_trimmed[rid] = trimmed_pages
+
+        # 3) Branch key for each Grok reply:
+        #    walk up inReplyToId until the parent is the root; that child-of-root is the branch key.
+        def branch_key_for(rid: str) -> str:
+            seen = set()
+            cur = rid
+            while cur and cur not in seen:
+                seen.add(cur)
+                parent = reply_map.get(cur)
+                if parent == root_id:
+                    return cur  # first child under the root; defines branch
+                if parent is None or parent not in reply_map:
+                    # parent unknown; fallback to highest ancestor we reached
+                    return cur
+                cur = parent
+            return rid  # conservative fallback
+
+        # 4) Group reply ids by branch key (preserve discovery order)
+        branch_order: List[str] = []
+        grouped: Dict[str, List[str]] = {}
+        for rid in rid_order:
+            key = branch_key_for(rid)
+            if key not in grouped:
+                grouped[key] = []
+                branch_order.append(key)
+            grouped[key].append(rid)
+
+        # 5) Merge threads per branch (loose across branches; dedupe within branch)
+        threads_out: List[dict] = []
+        for key in branch_order:
+            group_rids = grouped[key]              # reply ids in this branch, discovery order
+            representative = group_rids[0]         # earliest reply id becomes the threadId
+
+            logger.debug(
+                "Conversation %s → merging Grok replies into branch %s: %s",
+                conv_id, representative, group_rids
+            )
+
+            seen_ids = set()
+            merged_tweets: List[dict] = []
+            for rid in group_rids:
+                for page in per_rid_pages_trimmed.get(rid, []):
+                    # filter tweets for this merged branch (dedupe by tweet id; keep root)
+                    filtered: List[dict] = []
+                    for tw in page.get("tweets", []) or []:
+                        tid = tw.get("id")
+                        if not tid or tid in seen_ids:
+                            continue
+                        seen_ids.add(tid)
+                        filtered.append(tw)
+
+                    # append filtered tweets to the thread-level list
+                    if filtered:
+                        merged_tweets.extend(filtered)
 
             threads_out.append({
-                "threadId": rid,
-                "tweets": thread_tweets,
-                "pages": page_objs
+                "threadId": representative,
+                "tweets": merged_tweets,
             })
 
         conversations.append({
