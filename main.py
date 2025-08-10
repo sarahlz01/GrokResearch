@@ -5,10 +5,15 @@ import json
 from typing import Dict, List, Optional
 import requests
 from dotenv import load_dotenv
+import sys
+from format_objects import build_query, save_json, build_conversation_objects
 load_dotenv()
 API_BASE = "https://api.twitterapi.io"
 API_KEY = os.getenv("TWITTERIO_API_KEY")
 HEADERS = {"X-API-Key": API_KEY}
+
+assert API_KEY, "Set TWITTERIO_API_KEY env var."
+assert sys.prefix != sys.base_prefix, "Make sure to activate the venv by calling: source venv/bin/activate"
 
 # logging config
 logging.basicConfig(
@@ -37,41 +42,6 @@ def http_get(path: str, params: Optional[dict] = None, max_retries: int = 4, tim
     logging.error("❌\tFailed after %d attempts on %s", max_retries, path)
     resp.raise_for_status()
 
-# format the time into UTC
-def format_time_utc(ts: str) -> str:
-    ts = ts.strip()
-    if "_UTC" in ts: return ts
-    if " " in ts: date, hms = ts.split(" ", 1)
-    else: date, hms = ts, "00:00:00"
-    return f"{date}_{hms}_UTC"
-
-def build_query(handle: str,
-                 include_self_threads: bool = False,
-                 include_quotes: bool = False,
-                 include_retweets: bool = False,
-                 since: Optional[str] = None,
-                 until: Optional[str] = None) -> str:
-    parts = [f"from:{handle}", "filter:replies"]
-    if not include_retweets: 
-        parts.append("-filter:retweets") 
-    else: 
-        parts.append("filter:retweets")
-    
-    if not include_quotes: 
-        parts.append("-filter:quote")
-    else: 
-        parts.append("filter:quote")
-        
-    if not include_self_threads: 
-        parts.append("-filter:self_threads")
-    else:
-        parts.append("filter:self_threads")
-    
-    if since: parts.append(f"since:{format_time_utc(since)}")
-    if until: parts.append(f"until:{format_time_utc(until)}")
-    query = " ".join(parts)
-    logging.info("Built query:\t%s ", query)
-    return query
 
 def search_grok_replies(handle="grok",
                             since=None, until=None,
@@ -112,16 +82,19 @@ def fetch_thread_pages(tweet_id: str, max_pages: Optional[int] = None) -> List[d
     while True:
         page = http_get("/twitter/tweet/thread_context", {"tweetId": str(tweet_id), "cursor": cursor})
         pages.append(page)
-        cursor = page.get("next_cursor") or ""
         n += 1
+        if max_pages and n >= max_pages:
+            break
+
+        # Always obey the server's signal first
+        if not page.get("has_next_page"):
+            break
+
+        cursor = page.get("next_cursor") or ""
         if not cursor:
+            # Safety: stop if server says more but gives no cursor
             break
     return pages
-
-def save_json(obj, path: str):
-    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(obj, f, ensure_ascii=False, indent=2)
 
 def get_tweets(handle="grok",
                       since=None, until=None,
@@ -138,7 +111,6 @@ def get_tweets(handle="grok",
         "threads": { conversationId: [ {<raw thread_context page>}, ... ], ... }
       }
     """
-    assert API_KEY, "Set TWITTERAPI_IO_KEY env var."
 
     # 1) raw search pages
     search_pages = search_grok_replies(
@@ -158,11 +130,11 @@ def get_tweets(handle="grok",
         rep_tweet_id = conv_map[conv_id]
         threads[conv_id] = fetch_thread_pages(rep_tweet_id)
 
-    # 4) dump raw
-    payload = {"search_pages": search_pages, "threads": threads}
+    # 4) save a formatted payload
+    payload = build_conversation_objects(conv_map, threads)
     save_json(payload, out_path)
     return payload
-
+    
 if __name__ == "__main__":
     # widen the window slightly when validating counts
     payload = get_tweets(
@@ -173,6 +145,5 @@ if __name__ == "__main__":
         include_self_threads=False,
         include_quotes=False,
         include_retweets=False,
-        out_path="grok_data/grok_data.json"
+        out_path="grok_data/data.json"
     )
-    logging.info("Saved data to grok_data/grok_data.json")
