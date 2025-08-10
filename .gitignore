@@ -2,3 +2,4 @@
 .DS_Store
 /venv
 /grok_data
+/__pycache__
