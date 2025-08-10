@@ -105,18 +105,47 @@ def build_conversation_objects(
       [{ "conversationId": <id>, "tweets": [<selected fields>...] }, ...]
     Dedup tweets by id within each conversation.
     """
-    output = []
-    for conv_id, pages in conv_to_thread_pages.items():
+    conversations = []
+
+    for conv_id, pages in (conv_to_thread_pages or {}).items():
+        # Flattened, deduped tweets across all pages (as before)
         seen = set()
-        tweets_out: List[dict] = []
+        all_tweets = []
+
+        # Page-by-page view with metadata
+        page_objs = []
         for page in pages or []:
-            for t in items_from_thread_page(page):
+            raw_items = items_from_thread_page(page)
+
+            # Trim/order tweets for this page
+            pagination_objs = []
+            for t in raw_items:
                 tid = t.get("id")
                 if tid and tid not in seen:
                     seen.add(tid)
-                    tweets_out.append(save_fields(t))
-        output.append({"conversationId": conv_id, "tweets": tweets_out})
-    return output
+                    formatted = save_fields(t)
+                    all_tweets.append(formatted)
+               # else:
+                    # Even if duplicate globally, keep it in pagination_objs
+                    # ONLY if you want page fidelity. If not, skip this branch.
+                    #if tid:
+                    #    pagination_objs.append(save_fields(t))
+
+            pagination_obj = {
+                "has_next_page": page.get("has_next_page"),
+                "next_cursor": page.get("next_cursor"),
+                "status": page.get("status"),
+                "msg": page.get("msg"),
+            }
+            pagination_objs.append(pagination_obj)
+
+        conversations.append({
+            "conversationId": conv_id,
+            "tweets": all_tweets,   # fully flattened, deduped per conversation
+            "pagination": pagination_objs      # page-wise view incl. the 4 fields you asked for
+        })
+
+    return conversations
 
 # ---------- Save helper ----------
 def save_json(conversations: List[dict], path: str) -> None:

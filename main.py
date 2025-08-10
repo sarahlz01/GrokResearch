@@ -104,13 +104,6 @@ def get_tweets(handle="grok",
                       include_quotes=False,
                       include_retweets=False,
                       out_path="grok_raw_dump.json"):
-    """
-    Save RAW API data:
-      {
-        "search_pages": [ {<raw adv_search page>}, ... ],
-        "threads": { conversationId: [ {<raw thread_context page>}, ... ], ... }
-      }
-    """
 
     # 1) raw search pages
     search_pages = search_grok_replies(
