@@ -1,6 +1,6 @@
 import os
 import sys
-assert sys.prefix != sys.base_prefix, "Make sure you have setup the venv and activated it by calling:\tsource venv/bin/activate"
+assert sys.prefix != sys.base_prefix, "Make sure you have setup the venv and activated it by calling:\tsource venv/bin/activate.\nCheck README for more information"
 
 import time
 import logging
