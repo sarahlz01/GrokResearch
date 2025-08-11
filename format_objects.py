@@ -2,6 +2,7 @@ import logging
 from typing import Dict, List, Optional
 import json
 import os
+from storage import init_db
 
 logging.basicConfig(
     level=logging.INFO,
@@ -236,3 +237,131 @@ def save_json(obj: List[dict], path: str) -> None:
     with open(path, "w", encoding="utf-8") as f:
         json.dump(obj, f, ensure_ascii=False, indent=2)
     logging.info("Saved %d conversations to %s", len(obj), path)
+
+# ----------- Convert SQL to JSON --------------
+def export_json_from_db(out_path: str, grok_username: str = "grok"):
+    """
+    Build final JSON from SQLite:
+    [
+      {
+        "conversationId": "...",
+        "threads": [
+          { "threadId": "<grok reply id>", "tweets": [ ... ] }
+        ]
+      }
+    ]
+    - Includes the root/original tweet in every branch (loose mode).
+    - Orders tweets by true timestamp, ascending.
+    - threadId = latest Grok reply in the branch (matches your old JSON).
+    """
+    if init_db is None:
+        logging.error("SQLite export requested but storage/init_db is not available.")
+        return None
+
+    from datetime import datetime, timezone
+
+    def parse_dt(s: Optional[str]) -> datetime:
+        if not s:
+            return datetime.min.replace(tzinfo=timezone.utc)
+        try:
+            # Example: "Mon Aug 04 17:13:55 +0000 2025"
+            return datetime.strptime(s, "%a %b %d %H:%M:%S %z %Y")
+        except Exception:
+            return datetime.min.replace(tzinfo=timezone.utc)
+
+    conn = init_db()
+    cur = conn.execute("SELECT DISTINCT conversation_id FROM tweets ORDER BY conversation_id")
+    conv_ids = [row[0] for row in cur.fetchall() if row[0]]
+
+    conversations: List[dict] = []
+
+    for conv_id in conv_ids:
+        # Pull all tweets for this conversation (already normalized JSON in 'json' column)
+        cur = conn.execute("SELECT json FROM tweets WHERE conversation_id=?", (conv_id,))
+        rows = cur.fetchall()
+        if not rows:
+            continue
+
+        tweets: List[dict] = [json.loads(r[0]) for r in rows]
+        by_id: Dict[str, dict] = {t.get("id"): t for t in tweets if t.get("id")}
+        parent: Dict[str, Optional[str]] = {t.get("id"): t.get("inReplyToId") for t in tweets if t.get("id")}
+        root_id = conv_id
+        root_tweet = by_id.get(root_id)
+
+        # Identify Grok replies present in this conversation
+        grok_replies: List[str] = []
+        for t in tweets:
+            if (t.get("author") or {}).get("userName") == grok_username and t.get("isReply") and t.get("id"):
+                grok_replies.append(t["id"])
+        if not grok_replies:
+            # No Grok replies for this conversation — skip
+            continue
+
+        # Compute branch key: walk up via inReplyToId until parent == root → return that child (first-child under root)
+        def branch_key_for(tid: str) -> str:
+            seen = set()
+            cur_id = tid
+            while cur_id and cur_id not in seen:
+                seen.add(cur_id)
+                p = parent.get(cur_id)
+                if p == root_id:
+                    return cur_id  # first child under root
+                if p is None or p not in parent:
+                    return cur_id  # fallback: highest known ancestor
+                cur_id = p
+            return tid
+
+        # Assign each tweet to a branch (root will get its own key == root_id)
+        tweet_branch: Dict[str, str] = {}
+        for t in tweets:
+            tid = t.get("id")
+            if tid:
+                tweet_branch[tid] = branch_key_for(tid)
+
+        # Group Grok replies by branch key
+        branch_to_groks: Dict[str, List[str]] = {}
+        for rid in grok_replies:
+            key = tweet_branch.get(rid, rid)
+            branch_to_groks.setdefault(key, []).append(rid)
+
+        threads_out: List[dict] = []
+
+        for branch_key, rids in branch_to_groks.items():
+            # Collect tweets whose computed branch == this branch_key
+            branch_tweets = [t for t in tweets if tweet_branch.get(t.get("id")) == branch_key]
+
+            # LOOSEN: include the root/original tweet in every branch (if present)
+            if root_tweet is not None:
+                branch_tweets.append(root_tweet)
+
+            # Deduplicate by id and sort by true timestamp (ascending)
+            seen_ids: Set[str] = set()
+            ordered: List[dict] = []
+            # Sort by datetime; tie-break by id for stability
+            branch_tweets.sort(key=lambda x: (parse_dt(x.get("createdAt")), x.get("id") or ""))
+            for t in branch_tweets:
+                tid = t.get("id")
+                if tid and tid not in seen_ids:
+                    seen_ids.add(tid)
+                    ordered.append(t)
+
+            # Representative = LATEST Grok reply by createdAt in this branch (matches your old JSON)
+            grok_in_branch = [by_id[g] for g in rids if g in by_id]
+            if grok_in_branch:
+                rep = max(grok_in_branch, key=lambda x: (parse_dt(x.get("createdAt")), x.get("id") or "")).get("id")
+            else:
+                rep = rids[-1]  # fallback
+
+            threads_out.append({
+                "threadId": rep,
+                "tweets": ordered
+            })
+
+        conversations.append({
+            "conversationId": conv_id,
+            "threads": threads_out
+        })
+
+    save_json(conversations, out_path)
+    logging.info("Exported JSON from DB to %s (conversations: %d)", out_path, len(conversations))
+    return conversations
