@@ -4,7 +4,7 @@ assert sys.prefix != sys.base_prefix, "Make sure you have setup the venv and act
 
 import time
 import logging
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Set
 import requests
 from dotenv import load_dotenv
 
@@ -123,6 +123,33 @@ def page_signature_from_ids(ids: List[str], has_next: bool, next_cursor: Optiona
         tuple(sorted(ids))  # stable regardless of incoming order
     )
 
+# ---------------- NEW: harvest Grok reply IDs from pages ----------------
+def extract_grok_reply_ids_from_pages(pages: List[dict], conversation_id: str, grok_username: str = "grok") -> Set[str]:
+    """
+    Look through raw thread_context pages and extract tweet IDs that are:
+      - authored by `grok_username`
+      - marked as replies (isReply == True)
+      - in the same conversation
+    Returns a set of tweet IDs.
+    """
+    found: Set[str] = set()
+    for page in pages or []:
+        _, items = extract_items(page)
+        for t in items:
+            if not isinstance(t, dict):
+                continue
+            if t.get("conversationId") != conversation_id:
+                continue
+            author = t.get("author") or {}
+            if author.get("userName") != grok_username:
+                continue
+            if not t.get("isReply"):
+                continue
+            tid = t.get("id")
+            if tid:
+                found.add(tid)
+    return found
+
 # ---------------- Orchestration ----------------
 def get_tweets(handle="grok",
                since=None, until=None,
@@ -133,11 +160,9 @@ def get_tweets(handle="grok",
                include_retweets=False,
                out_path="grok_data/data.json"):
     """
-    Loose structure, PLUS per-thread dedupe while merging:
-      - seen_tweet_ids per (conversationId, replyId)
-      - page_signatures per (conversationId, replyId)
-      - we filter each incoming page down to unseen tweet IDs before appending
-      - we skip pages whose signature we've already seen
+    Loose structure, PLUS per-thread dedupe while merging.
+    NEW: Use a per-conversation 'seen' set to avoid calling thread_context
+         for Grok reply IDs that are discovered as descendants on the same branch.
     """
     # 1) raw search pages
     search_pages = search_grok_replies(
@@ -152,26 +177,34 @@ def get_tweets(handle="grok",
     if limit_threads:
         conv_ids = conv_ids[:limit_threads]
 
-    # 3) In-memory "seen" per run to avoid refetching same replyId twice in this run
-    run_seen_reply_ids: Dict[str, set] = {}
-
-    # 4) Per-conversation → per-thread container with dedupe state
+    # 3) Per-conversation → per-thread container with dedupe state
     #    threads_state[conv_id][rid] = { "pages": [], "seen_tweet_ids": set(), "page_signatures": set() }
     threads_state: Dict[str, Dict[str, dict]] = {}
 
+    # NEW: in-memory per-conversation seen set of Grok reply IDs
+    seen: Dict[str, Set[str]] = {conv_id: set() for conv_id in conv_ids}
+
     for conv_id in conv_ids:
-        reply_ids = conv_to_reply_ids.get(conv_id, [])
-        seen_rids = run_seen_reply_ids.setdefault(conv_id, set())
+        reply_ids = conv_to_reply_ids.get(conv_id, [])  # ordered by discovery
 
-        new_ids = [rid for rid in reply_ids if rid not in seen_rids]
-        if not new_ids:
-            logging.info("Conversation %s: no new Grok reply ids (skipping fetch).", conv_id)
-            continue
+        logging.info("Conversation %s: %d Grok reply id(s) from search.", conv_id, len(reply_ids))
+        for rid in reply_ids:
+            # Skip if we've already covered this Grok reply id via an earlier thread fetch
+            if rid in seen[conv_id]:
+                logging.info("Conversation %s: skipping reply %s (already seen via earlier fetch).", conv_id, rid)
+                continue
 
-        logging.info("Conversation %s: fetching %d thread(s).", conv_id, len(new_ids))
-        for rid in new_ids:
+            # Mark as seen immediately to avoid double-processing if it reappears in search list
+            seen[conv_id].add(rid)
+
             # Fetch raw pages for this replyId
             pages = fetch_thread_pages(rid)
+
+            # Harvest any other Grok reply IDs surfaced by this fetch (same conversation)
+            newly_found = extract_grok_reply_ids_from_pages(pages, conversation_id=conv_id, grok_username=handle)
+            if newly_found:
+                logging.info("Conversation %s: discovered %d additional Grok reply id(s) via %s.", conv_id, len(newly_found), rid)
+                seen[conv_id].update(newly_found)
 
             # Ensure state object exists
             state = threads_state.setdefault(conv_id, {}).setdefault(rid, {
@@ -180,7 +213,7 @@ def get_tweets(handle="grok",
                 "page_signatures": set(),
             })
 
-            # Merge with per-thread dedupe
+            # Merge with per-thread dedupe (unchanged)
             for page in pages or []:
                 key, items = extract_items(page)
                 ids_in_page = [t.get("id") for t in items if t.get("id")]
@@ -218,13 +251,10 @@ def get_tweets(handle="grok",
                     filtered_page["replies"] = filtered_items
                 else:
                     filtered_page["tweets"] = filtered_items
-                
+
                 # Record page signature and append
                 state["page_signatures"].add(sig)
                 state["pages"].append(filtered_page)
-
-            # mark reply id as fetched in this run
-            seen_rids.add(rid)
 
     # 5) Convert to the formatter's expected shape: {conv: {rid: [pages...]}}
     threads_by_conv: Dict[str, Dict[str, List[dict]]] = {}
@@ -240,8 +270,8 @@ def get_tweets(handle="grok",
 if __name__ == "__main__":
     payload = get_tweets(
         handle="grok",
-        since="2025-08-05 00:00:00",  # CHANGE THESE FIELDS!
-        until="2025-08-05 00:00:01",
+        since="2025-08-02 00:00:00",  # CHANGE THESE FIELDS!
+        until="2025-08-07 00:00:00",
         query_type="Latest",
         include_self_threads=False,
         include_quotes=False,
