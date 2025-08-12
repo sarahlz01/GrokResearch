@@ -1,15 +1,10 @@
+# setup logging
 import logging
+logging.getLogger(__name__)
+
 from typing import Dict, List, Optional, Tuple, Set
 import json, os, tempfile
 from storage import init_db, load_checkpoint, save_checkpoint
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S"
-)
-logger = logging.getLogger(__name__)
-
 
 def format_time_utc(ts: str) -> str:
     ts = ts.strip()
@@ -196,7 +191,7 @@ def build_conversation_objects_by_threads(
             group_rids = grouped[key]              # reply ids in this branch, discovery order
             representative = group_rids[0]         # earliest reply id becomes the threadId
 
-            logger.debug(
+            logging.debug(
                 "Conversation %s → merging Grok replies into branch %s: %s",
                 conv_id, representative, group_rids
             )
@@ -259,7 +254,7 @@ def export_json_from_db(out_path: str, grok_username: str = "grok"):
       - Uses DB fields (created_at_ts, parent_id, is_grok_reply) to simplify logic.
     """
     if init_db is None:
-        logger.error("SQLite export requested but storage/init_db is not available.")
+        logging.error("SQLite export requested but storage/init_db is not available.")
         return None
 
     conn = init_db()
@@ -276,7 +271,7 @@ def export_json_from_db(out_path: str, grok_username: str = "grok"):
                 if cid:
                     existing[cid] = c
         except Exception:
-            logger.warning("Existing JSON unreadable; rebuilding from scratch.")
+            logging.warning("Existing JSON unreadable; rebuilding from scratch.")
 
     # Find conversations that changed since last checkpoint
     cur = conn.execute(
@@ -390,6 +385,6 @@ def export_json_from_db(out_path: str, grok_username: str = "grok"):
     max_ts = cur.fetchone()[0] or last_ts
     save_checkpoint(conn, ck_key, str(max_ts))
 
-    logger.info("Exported %d conversation(s): %s (updated: %d, last_ts=%s)",
+    logging.info("Exported %d conversation(s): %s (updated: %d, last_ts=%s)",
                 len(merged), out_path, len(changed_convs), max_ts)
     return merged

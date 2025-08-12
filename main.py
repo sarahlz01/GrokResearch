@@ -1,8 +1,15 @@
+# set up logging
+from setuplog import setup_logging
+LOG_PATH = setup_logging(run_name="run", log_dir="logs", to_stdout=False)
+
+
 import os
+from pathlib import Path
 import sys
 assert sys.prefix != sys.base_prefix, "Make sure you have setup the venv and activated it by calling:\tsource venv/bin/activate.\nCheck README for more information"
 
 import time
+from datetime import datetime
 import logging
 from typing import Dict, List, Optional, Tuple, Set
 import requests
@@ -11,13 +18,13 @@ from dotenv import load_dotenv
 from format_objects import build_query, export_json_from_db, save_fields 
 from storage import init_db, upsert_tweets
 
+# load env variables
 load_dotenv()
 API_BASE = "https://api.twitterapi.io"
 API_KEY = os.getenv("TWITTERIO_API_KEY")
 HEADERS = {"X-API-Key": API_KEY}
 assert API_KEY, "Set TWITTERIO_API_KEY env var."
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
 
 def http_get(path: str, params: Optional[dict] = None, max_retries: int = 4, timeout: int = 30) -> dict:
     url = f"{API_BASE}{path}"
@@ -183,8 +190,10 @@ def run_streaming(handle="grok",
         try:
             export_json_from_db(out_path=out_path, grok_username=handle)
             logging.info("💾 Partial dump complete: %s", out_path)
+            logging.info("Done.")
         except Exception as dump_err:
             logging.error("🚫 Failed to dump partial JSON after error: %s", dump_err)
+            logging.info("Done.")
         raise # re-raise so callers know the run failed (remove if you prefer to swallow)
 
 if __name__ == "__main__":
