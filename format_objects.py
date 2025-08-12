@@ -390,6 +390,6 @@ def export_json_from_db(out_path: str, grok_username: str = "grok"):
     max_ts = cur.fetchone()[0] or last_ts
     save_checkpoint(conn, ck_key, str(max_ts))
 
-    logger.info("Exported %d conversation(s) → %s (updated: %d, last_ts=%s)",
+    logger.info("Exported %d conversation(s): %s (updated: %d, last_ts=%s)",
                 len(merged), out_path, len(changed_convs), max_ts)
     return merged

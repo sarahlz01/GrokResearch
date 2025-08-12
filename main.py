@@ -22,16 +22,51 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 def http_get(path: str, params: Optional[dict] = None, max_retries: int = 4, timeout: int = 30) -> dict:
     url = f"{API_BASE}{path}"
     backoff = 1.0
+    last_exc = None
+
     for attempt in range(max_retries):
-        resp = requests.get(url, headers=HEADERS, params=params, timeout=timeout)
-        if resp.status_code == 200:
-            logging.info("✅\tSuccess: %s (%d/%d)", path, attempt + 1, max_retries)
-            return resp.json()
-        if resp.status_code in (429, 500, 502, 503, 504):
-            logging.warning("⚠️\tHTTP %s on %s (%d/%d). Backing off %.1f s...", resp.status_code, path, attempt + 1, max_retries, backoff)
-            time.sleep(backoff); backoff *= 2; continue
-        logging.error("\t🚫HTTP %s on %s. No retry.", resp.status_code, path); resp.raise_for_status()
-    logging.error("\t🚫Failed after %d attempts on %s", max_retries, path); resp.raise_for_status()
+        try:
+            resp = requests.get(url, headers=HEADERS, params=params, timeout=timeout)
+            if resp.status_code == 200:
+                try:
+                    return resp.json()
+                except ValueError as e:
+                    logging.error("🚫\tInvalid JSON from %s: %s", url, e)
+                    last_exc = e
+                    time.sleep(backoff)
+                    backoff *= 2
+                    continue
+
+            if resp.status_code in (429, 500, 502, 503, 504):
+                logging.warning(
+                    "⚠️\tHTTP %s on %s (%d/%d). Backing off %.1f s...",
+                    resp.status_code, path, attempt + 1, max_retries, backoff
+                )
+                time.sleep(backoff)
+                backoff *= 2
+                continue
+
+            logging.error("🚫\tHTTP %s on %s. No retry.", resp.status_code, path)
+            resp.raise_for_status()
+
+        except requests.RequestException as e:
+            logging.warning("⚠️\tRequest error on %s (%d/%d): %s. Backing off %.1f s...",
+                path, attempt + 1, max_retries, e, backoff
+            )
+            last_exc = e
+            time.sleep(backoff)
+            backoff *= 2
+            continue
+
+        except Exception as e:
+            logging.error("🚫\tUnexpected error on %s: %s", path, e)
+            last_exc = e
+
+    logging.error("🚫\tFailed after %d attempts on %s", max_retries, path)
+    if last_exc:
+        raise last_exc
+    else:
+        raise RuntimeError(f"Failed to fetch {url}")
 
 def extract_items(page: dict) -> Tuple[str, List[dict]]:
     if isinstance(page.get("replies"), list):
@@ -103,52 +138,60 @@ def run_streaming(handle="grok",
     seen: Dict[str, Set[str]] = {}
     total_upserts = 0
     total_search_pages = 0
+    try:
+        for search_page in search_grok_replies_stream(
+            handle=handle, since=since, until=until, query_type=query_type,
+            include_self_threads=include_self_threads, include_quotes=include_quotes, include_retweets=include_retweets
+        ):
+            total_search_pages += 1
 
-    for search_page in search_grok_replies_stream(
-        handle=handle, since=since, until=until, query_type=query_type,
-        include_self_threads=include_self_threads, include_quotes=include_quotes, include_retweets=include_retweets
-    ):
-        total_search_pages += 1
+            # Extract conv→reply ids from THIS search page only
+            conv_to_ids: Dict[str, List[str]] = {}
+            _, items = extract_items(search_page)
+            for t in items:
+                conv = t.get("conversationId")
+                tid = t.get("id")
+                if conv and tid:
+                    conv_to_ids.setdefault(conv, []).append(tid)
 
-        # Extract conv→reply ids from THIS search page only
-        conv_to_ids: Dict[str, List[str]] = {}
-        _, items = extract_items(search_page)
-        for t in items:
-            conv = t.get("conversationId")
-            tid = t.get("id")
-            if conv and tid:
-                conv_to_ids.setdefault(conv, []).append(tid)
+            for conv_id, reply_ids in conv_to_ids.items():
+                seen.setdefault(conv_id, set())
 
-        for conv_id, reply_ids in conv_to_ids.items():
-            seen.setdefault(conv_id, set())
+                for rid in reply_ids:
+                    if rid in seen[conv_id]:
+                        continue
+                    seen[conv_id].add(rid)
 
-            for rid in reply_ids:
-                if rid in seen[conv_id]:
-                    continue
-                seen[conv_id].add(rid)
+                    for page in fetch_thread_pages_stream(rid):
+                        _, page_items = extract_items(page)
+                        if db_conn and page_items:
+                            normalized = [save_fields(t) for t in page_items if isinstance(t, dict)]
+                            if normalized:
+                                total_upserts += upsert_tweets(db_conn, normalized, batch_size=500, grok_username=handle)
 
-                for page in fetch_thread_pages_stream(rid):
-                    _, page_items = extract_items(page)
-                    if db_conn and page_items:
-                        normalized = [save_fields(t) for t in page_items if isinstance(t, dict)]
-                        if normalized:
-                            total_upserts += upsert_tweets(db_conn, normalized, batch_size=500, grok_username=handle)
+                        new_groks = extract_grok_reply_ids_from_pages(page, conversation_id=conv_id, grok_username=handle)
+                        if new_groks:
+                            seen[conv_id].update(new_groks)
 
-                    new_groks = extract_grok_reply_ids_from_pages(page, conversation_id=conv_id, grok_username=handle)
-                    if new_groks:
-                        seen[conv_id].update(new_groks)
+        logging.info("Streaming complete: %d search page(s); ~%d upsert attempts.", total_search_pages, total_upserts)
 
-    logging.info("Streaming complete: %d search page(s); ~%d upsert attempts.", total_search_pages, total_upserts)
-
-    if build_final_json:
-        return export_json_from_db(out_path=out_path, grok_username=handle)
-    return None
+        if build_final_json:
+            return export_json_from_db(out_path=out_path, grok_username=handle)
+        return None
+    except Exception as e:
+        logging.error("Dumping partial DB to JSON due to error: %s", e)
+        try:
+            export_json_from_db(out_path=out_path, grok_username=handle)
+            logging.info("💾 Partial dump complete: %s", out_path)
+        except Exception as dump_err:
+            logging.error("🚫 Failed to dump partial JSON after error: %s", dump_err)
+        raise # re-raise so callers know the run failed (remove if you prefer to swallow)
 
 if __name__ == "__main__":
     run_streaming(
         handle="grok",
-        since="2025-08-05 00:00:00",
-        until="2025-08-05 00:00:01",
+        since="2025-08-04 00:00:00",
+        until="2025-08-05 00:00:00",
         query_type="Latest",
         include_self_threads=False,
         include_quotes=False,
