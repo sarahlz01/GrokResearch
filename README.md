@@ -10,4 +10,7 @@ To run this code, run the following commands
 
 Notes
 
-- The grok_sqlit3 database is never wiped clean before each run. It's updated each time, so for testing, delete the sqlite file and run the test
+- The grok_sqlit3 database is never wiped clean before each run. It's updated each time, so for testing, delete the sqlite file and the JSON file and run the test
+- Change the backoff time depending on if you're a paid or free user of twitterapi.io
+- Refer to line 23 of format_objects.py. Change `parts = [f"from:{handle}","to:taka_i_32", "filter:replies"]` to `parts = [f"from:{handle}", "filter:replies"]`
+- Change the query date located in the main function where run_streaming is called

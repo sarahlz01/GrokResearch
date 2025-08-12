@@ -2,14 +2,11 @@
 from setuplog import setup_logging
 LOG_PATH = setup_logging(run_name="run", log_dir="logs", to_stdout=False)
 
-
 import os
-from pathlib import Path
 import sys
 assert sys.prefix != sys.base_prefix, "Make sure you have setup the venv and activated it by calling:\tsource venv/bin/activate.\nCheck README for more information"
 
 import time
-from datetime import datetime
 import logging
 from typing import Dict, List, Optional, Tuple, Set
 import requests
@@ -36,6 +33,7 @@ def http_get(path: str, params: Optional[dict] = None, max_retries: int = 4, tim
             resp = requests.get(url, headers=HEADERS, params=params, timeout=timeout)
             if resp.status_code == 200:
                 try:
+                    logging.info("✅ Success: %s (attempt %d/%d)", path, attempt + 1, max_retries)
                     return resp.json()
                 except ValueError as e:
                     logging.error("🚫\tInvalid JSON from %s: %s", url, e)
@@ -46,10 +44,10 @@ def http_get(path: str, params: Optional[dict] = None, max_retries: int = 4, tim
 
             if resp.status_code in (429, 500, 502, 503, 504):
                 logging.warning(
-                    "⚠️\tHTTP %s on %s (%d/%d). Backing off %.1f s...",
-                    resp.status_code, path, attempt + 1, max_retries, backoff
+                    "⚠️\tHTTP %s on %s (%d/%d). Backing off %.1f s... | VERBOSE : %s",
+                    resp.status_code, path, attempt + 1, max_retries, backoff, resp.text
                 )
-                time.sleep(backoff)
+                time.sleep(5)  #!! change to backoff when we have the paid version
                 backoff *= 2
                 continue
 
@@ -199,8 +197,8 @@ def run_streaming(handle="grok",
 if __name__ == "__main__":
     run_streaming(
         handle="grok",
-        since="2025-08-04 00:00:00",
-        until="2025-08-05 00:00:00",
+        since="2025-08-02 00:00:00",
+        until="2025-08-07 00:00:00",
         query_type="Latest",
         include_self_threads=False,
         include_quotes=False,
