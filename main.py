@@ -22,7 +22,7 @@ API_KEY = os.getenv("TWITTERIO_API_KEY")
 HEADERS = {"X-API-Key": API_KEY}
 assert API_KEY, "Set TWITTERIO_API_KEY env var."
 
-
+# Makes ONE http request
 def http_get(path: str, params: Optional[dict] = None, max_retries: int = 4, timeout: int = 30) -> dict:
     url = f"{API_BASE}{path}"
     backoff = 1.0
@@ -87,7 +87,7 @@ def search_grok_replies_stream(handle="grok", since=None, until=None, query_type
     while True:
         params = {"query": query, "queryType": query_type, "cursor": cursor}
         page = http_get("/twitter/tweet/advanced_search", params)
-        yield page
+        yield page # we YIELD pages instead of returning them. This makes it so that every time we get a new page, its instantly processed before we move on to the next page
         cursor = page.get("next_cursor") or ""
         if not cursor:
             break
@@ -96,7 +96,7 @@ def fetch_thread_pages_stream(tweet_id: str):
     cursor = ""
     while True:
         page = http_get("/twitter/tweet/thread_context", {"tweetId": str(tweet_id), "cursor": cursor})
-        yield page
+        yield page # same thing here, we YIELD pages
         if not page.get("has_next_page"):
             break
         cursor = page.get("next_cursor") or ""
@@ -197,8 +197,8 @@ def run_streaming(handle="grok",
 if __name__ == "__main__":
     run_streaming(
         handle="grok",
-        since="2025-08-02 00:00:00",
-        until="2025-08-07 00:00:00",
+        since="2025-08-05 00:00:00",
+        until="2025-08-05 00:00:01",
         query_type="Latest",
         include_self_threads=False,
         include_quotes=False,

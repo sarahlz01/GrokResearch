@@ -19,7 +19,7 @@ def build_query(handle: str,
                 include_retweets: bool = False,
                 since: Optional[str] = None,
                 until: Optional[str] = None) -> str:
-    parts = [f"from:{handle}","to:taka_i_32", "filter:replies"] # !! remove the entire "to:___" element 
+    parts = [f"from:{handle}", "filter:replies"] # !! remove the entire "to:___" element 
     parts.append("filter:retweets" if include_retweets else "-filter:retweets")
     parts.append("filter:quote" if include_quotes else "-filter:quote")
     parts.append("filter:self_threads" if include_self_threads else "-filter:self_threads")
