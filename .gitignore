@@ -3,4 +3,5 @@
 /venv
 /grok_data
 /__pycache__
-/archive
+/archive/mydata
+/archive/__pycache__
