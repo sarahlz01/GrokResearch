@@ -210,8 +210,8 @@ def run_streaming(handle="grok",
 if __name__ == "__main__":
     run_streaming(
         handle="grok",
-        since="2025-08-05 00:00:00",
-        until="2025-08-05 00:00:01",
+        since="2025-08-01 00:00:00",
+        until="2025-08-01 23:59:59",
         query_type="Latest",
         include_self_threads=False,
         include_quotes=False,
