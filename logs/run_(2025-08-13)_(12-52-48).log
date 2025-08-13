@@ -1,0 +1,110 @@
+2025-08-13 12:52:48 | [INFO    ] | root | Built query:	from:grok filter:replies -filter:retweets -filter:quote -filter:self_threads since:2025-08-01_00:00:00_UTC until:2025-08-01_23:59:59_UTC
+2025-08-13 12:52:49 | [INFO    ] | root | ✅ Success: /twitter/tweet/advanced_search (attempt 1/4)
+2025-08-13 12:52:49 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:52:56 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:52:57 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:53:03 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:53:04 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:53:10 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:53:10 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:53:16 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:53:16 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:53:23 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:53:23 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:53:29 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:53:29 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:53:35 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:53:36 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:53:42 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:53:42 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:53:48 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:53:48 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:53:54 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:53:54 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:54:01 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:54:01 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:54:06 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:54:07 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:54:12 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:54:13 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:54:18 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:54:19 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:54:25 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:54:25 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:54:31 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:54:32 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:54:38 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:54:38 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:54:44 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:54:44 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:54:50 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:54:51 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:54:56 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:54:57 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:55:03 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:55:04 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:55:10 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:55:10 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:55:16 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:55:16 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:55:22 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:55:22 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:55:28 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:55:28 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:55:34 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:55:34 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:55:41 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:55:41 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:55:47 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:55:47 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:55:53 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:55:54 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:56:00 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:56:00 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:56:06 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:56:07 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:56:13 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:56:13 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:56:19 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:56:19 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:56:25 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:56:26 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/advanced_search (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:56:32 | [INFO    ] | root | ✅ Success: /twitter/tweet/advanced_search (attempt 2/4)
+2025-08-13 12:56:32 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:56:38 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:56:38 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:56:44 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:56:44 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:56:50 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:56:50 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:56:56 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:56:57 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:57:03 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:57:03 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:57:09 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:57:09 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:57:15 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:57:15 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:57:21 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:57:21 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:57:27 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:57:27 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:57:33 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:57:34 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:57:40 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:57:40 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:57:45 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:57:46 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:57:52 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:57:53 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:57:58 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:57:58 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:58:05 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:58:06 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:58:11 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:58:12 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:58:18 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:58:19 | [WARNING ] | root | ⚠️	HTTP 429 on /twitter/tweet/thread_context (1/4). Backing off 1.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-08-13 12:58:25 | [INFO    ] | root | ✅ Success: /twitter/tweet/thread_context (attempt 2/4)
+2025-08-13 12:58:25 | [INFO    ] | root | Exported 26 conversation(s): grok_data/data.json (updated: 26, last_ts=1754108977)
+2025-08-13 12:58:25 | [INFO    ] | root | Done.

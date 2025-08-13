@@ -150,18 +150,6 @@ def run_streaming(handle="grok",
             include_self_threads=include_self_threads, include_quotes=include_quotes, include_retweets=include_retweets
         ):
             total_search_pages += 1
-            
-            # logic to handle # conversations
-            if number_conversations <= 0 or len(seen) > number_conversations:
-                if build_final_json:
-                    try:
-                        return export_json_from_db(out_path=out_path, grok_username=handle)
-                    except Exception as e:
-                        logging.error("Couldn't export as JSON due to error: %s", e)
-                        raise
-                return None
-            
-                
 
             # Extract conv→reply ids from THIS search page only
             conv_to_ids: Dict[str, List[str]] = {}
@@ -173,6 +161,16 @@ def run_streaming(handle="grok",
                     conv_to_ids.setdefault(conv, []).append(tid)
 
             for conv_id, reply_ids in conv_to_ids.items():
+                # logic to handle # conversations
+                print(len(seen))
+                if number_conversations <= 0 or len(seen) >= number_conversations:
+                    if build_final_json:
+                        try:
+                            return export_json_from_db(out_path=out_path, grok_username=handle)
+                        except Exception as e:
+                            logging.error("Couldn't export as JSON due to error: %s", e)
+                            raise
+                    return None
                 seen.setdefault(conv_id, set())
 
                 for rid in reply_ids:
