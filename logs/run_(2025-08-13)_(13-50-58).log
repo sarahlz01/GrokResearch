@@ -1,0 +1,15 @@
+2025-08-13 13:50:58 | [INFO    ] | root | Built query:	from:grok filter:replies -filter:retweets -filter:quote -filter:self_threads since:2025-08-01_00:00:00_UTC until:2025-08-01_23:59:59_UTC
+2025-08-13 13:50:58 | [ERROR   ] | root | 🚫	HTTP 402 on /twitter/tweet/advanced_search. No retry.
+2025-08-13 13:50:58 | [WARNING ] | root | ⚠️	Request error on /twitter/tweet/advanced_search (1/4): 402 Client Error: Payment Required for url: https://api.twitterapi.io/twitter/tweet/advanced_search?query=from%3Agrok+filter%3Areplies+-filter%3Aretweets+-filter%3Aquote+-filter%3Aself_threads+since%3A2025-08-01_00%3A00%3A00_UTC+until%3A2025-08-01_23%3A59%3A59_UTC&queryType=Latest&cursor=. Backing off 1.0 s...
+2025-08-13 13:51:00 | [ERROR   ] | root | 🚫	HTTP 402 on /twitter/tweet/advanced_search. No retry.
+2025-08-13 13:51:00 | [WARNING ] | root | ⚠️	Request error on /twitter/tweet/advanced_search (2/4): 402 Client Error: Payment Required for url: https://api.twitterapi.io/twitter/tweet/advanced_search?query=from%3Agrok+filter%3Areplies+-filter%3Aretweets+-filter%3Aquote+-filter%3Aself_threads+since%3A2025-08-01_00%3A00%3A00_UTC+until%3A2025-08-01_23%3A59%3A59_UTC&queryType=Latest&cursor=. Backing off 2.0 s...
+2025-08-13 13:51:02 | [ERROR   ] | root | 🚫	HTTP 402 on /twitter/tweet/advanced_search. No retry.
+2025-08-13 13:51:02 | [WARNING ] | root | ⚠️	Request error on /twitter/tweet/advanced_search (3/4): 402 Client Error: Payment Required for url: https://api.twitterapi.io/twitter/tweet/advanced_search?query=from%3Agrok+filter%3Areplies+-filter%3Aretweets+-filter%3Aquote+-filter%3Aself_threads+since%3A2025-08-01_00%3A00%3A00_UTC+until%3A2025-08-01_23%3A59%3A59_UTC&queryType=Latest&cursor=. Backing off 4.0 s...
+2025-08-13 13:51:06 | [ERROR   ] | root | 🚫	HTTP 402 on /twitter/tweet/advanced_search. No retry.
+2025-08-13 13:51:06 | [WARNING ] | root | ⚠️	Request error on /twitter/tweet/advanced_search (4/4): 402 Client Error: Payment Required for url: https://api.twitterapi.io/twitter/tweet/advanced_search?query=from%3Agrok+filter%3Areplies+-filter%3Aretweets+-filter%3Aquote+-filter%3Aself_threads+since%3A2025-08-01_00%3A00%3A00_UTC+until%3A2025-08-01_23%3A59%3A59_UTC&queryType=Latest&cursor=. Backing off 8.0 s...
+2025-08-13 13:51:14 | [ERROR   ] | root | 🚫	Failed after 4 attempts on /twitter/tweet/advanced_search
+2025-08-13 13:51:14 | [ERROR   ] | root | Dumping partial DB to JSON due to error: 402 Client Error: Payment Required for url: https://api.twitterapi.io/twitter/tweet/advanced_search?query=from%3Agrok+filter%3Areplies+-filter%3Aretweets+-filter%3Aquote+-filter%3Aself_threads+since%3A2025-08-01_00%3A00%3A00_UTC+until%3A2025-08-01_23%3A59%3A59_UTC&queryType=Latest&cursor=
+2025-08-13 13:51:14 | [INFO    ] | root | Exported 6 conversation(s): grok_data/data.json (updated: 0, last_ts=1754095887)
+2025-08-13 13:51:14 | [INFO    ] | root | 💾 Partial dump complete: grok_data/data.json
+2025-08-13 13:51:14 | [INFO    ] | root | Done.
+2025-08-13 13:51:14 | [INFO    ] | root | Run summary — elapsed=15.9s | conversations=0 | search_pages=0 | upserts≈0 | api_success=0 / attempts=4

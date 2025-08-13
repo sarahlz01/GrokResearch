@@ -22,17 +22,25 @@ API_KEY = os.getenv("TWITTERIO_API_KEY")
 HEADERS = {"X-API-Key": API_KEY}
 assert API_KEY, "Set TWITTERIO_API_KEY env var."
 
+# global variables for tracking purposes
+TOTAL_API_CALLS = 0
+SUCCESSFUL_API_CALLS=0
+
 # Makes ONE http request
 def http_get(path: str, params: Optional[dict] = None, max_retries: int = 4, timeout: int = 30) -> dict:
+    global TOTAL_API_CALLS, SUCCESSFUL_API_CALLS
+    
     url = f"{API_BASE}{path}"
     backoff = 1.0
     last_exc = None
 
     for attempt in range(max_retries):
         try:
+            TOTAL_API_CALLS += 1
             resp = requests.get(url, headers=HEADERS, params=params, timeout=timeout)
             if resp.status_code == 200:
                 try:
+                    SUCCESSFUL_API_CALLS += 1
                     logging.info("✅ Success: %s (attempt %d/%d)", path, attempt + 1, max_retries)
                     return resp.json()
                 except ValueError as e:
@@ -132,7 +140,13 @@ def run_streaming(handle="grok",
                   build_final_json: bool = False,
                   out_path: str = "grok_data/data.json",
                   number_conversations: int= 0):
+    global TOTAL_API_CALLS, SUCCESSFUL_API_CALLS
     db_conn = None
+    stop = False
+    t0 = time.time()
+
+    
+    
     if init_db and upsert_tweets:
         try:
             db_conn = init_db()
@@ -164,13 +178,8 @@ def run_streaming(handle="grok",
                 # logic to handle # conversations
                 print(len(seen))
                 if number_conversations <= 0 or len(seen) >= number_conversations:
-                    if build_final_json:
-                        try:
-                            return export_json_from_db(out_path=out_path, grok_username=handle)
-                        except Exception as e:
-                            logging.error("Couldn't export as JSON due to error: %s", e)
-                            raise
-                    return None
+                    stop = True
+                    break
                 seen.setdefault(conv_id, set())
 
                 for rid in reply_ids:
@@ -188,6 +197,9 @@ def run_streaming(handle="grok",
                         new_groks = extract_grok_reply_ids_from_pages(page, conversation_id=conv_id, grok_username=handle)
                         if new_groks:
                             seen[conv_id].update(new_groks)
+            
+            if stop:
+                break
 
         logging.info("Streaming complete: %d search page(s); ~%d upsert attempts.", total_search_pages, total_upserts)
 
@@ -204,6 +216,12 @@ def run_streaming(handle="grok",
             logging.error("🚫 Failed to dump partial JSON after error: %s", dump_err)
             logging.info("Done.")
         raise # re-raise so callers know the run failed (remove if you prefer to swallow)
+    finally:
+        elapsed = time.time() - t0
+        logging.info(
+            "Run summary — elapsed=%.1fs | conversations=%d | search_pages=%d | upserts≈%d | api_success=%d / attempts=%d",
+            elapsed, len(seen), total_search_pages, total_upserts, SUCCESSFUL_API_CALLS, TOTAL_API_CALLS
+        )
 
 if __name__ == "__main__":
     run_streaming(
@@ -218,4 +236,3 @@ if __name__ == "__main__":
         out_path="grok_data/data.json",
         number_conversations=25 # !! default value is 0, must set it here!
     )
-    logging.info("Done.")
