@@ -130,7 +130,8 @@ def run_streaming(handle="grok",
                   include_quotes=False,
                   include_retweets=False,
                   build_final_json: bool = False,
-                  out_path: str = "grok_data/data.json"):
+                  out_path: str = "grok_data/data.json",
+                  number_conversations: int= 0):
     db_conn = None
     if init_db and upsert_tweets:
         try:
@@ -149,6 +150,18 @@ def run_streaming(handle="grok",
             include_self_threads=include_self_threads, include_quotes=include_quotes, include_retweets=include_retweets
         ):
             total_search_pages += 1
+            
+            # logic to handle # conversations
+            if number_conversations <= 0 or len(seen) > number_conversations:
+                if build_final_json:
+                    try:
+                        return export_json_from_db(out_path=out_path, grok_username=handle)
+                    except Exception as e:
+                        logging.error("Couldn't export as JSON due to error: %s", e)
+                        raise
+                return None
+            
+                
 
             # Extract conv→reply ids from THIS search page only
             conv_to_ids: Dict[str, List[str]] = {}
@@ -204,6 +217,7 @@ if __name__ == "__main__":
         include_quotes=False,
         include_retweets=False,
         build_final_json=True,
-        out_path="grok_data/data.json"
+        out_path="grok_data/data.json",
+        number_conversations=25 # !! default value is 0, must set it here!
     )
     logging.info("Done.")

@@ -1,0 +1,4 @@
+2025-08-13 12:22:12 | [INFO    ] | root | Built query:	from:grok filter:replies -filter:retweets -filter:quote -filter:self_threads since:2025-08-05_00:00:00_UTC until:2025-08-05_00:00:01_UTC
+2025-08-13 12:22:13 | [INFO    ] | root | ✅ Success: /twitter/tweet/advanced_search (attempt 1/4)
+2025-08-13 12:22:13 | [INFO    ] | root | Exported 0 conversation(s): grok_data/data.json (updated: 0, last_ts=0)
+2025-08-13 12:22:13 | [INFO    ] | root | Done.
