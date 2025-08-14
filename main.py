@@ -226,13 +226,13 @@ def run_streaming(handle="grok",
 if __name__ == "__main__":
     run_streaming(
         handle="grok",
-        since="2025-08-01 00:00:00",
-        until="2025-08-01 23:59:59",
+        since="2025-08-05 00:00:00",
+        until="2025-08-05 00:00:01",
         query_type="Latest",
         include_self_threads=False,
         include_quotes=False,
         include_retweets=False,
         build_final_json=True,
         out_path="grok_data/data.json",
-        number_conversations=25 # !! default value is 0, must set it here!
+        number_conversations=10 # !! default value is 0, must set it here!
     )

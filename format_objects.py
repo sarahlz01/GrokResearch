@@ -77,12 +77,15 @@ def _format_nested_tweet(t: Optional[dict], remaining_depth: int, seen_ids: Opti
     base["retweeted_tweet"] = _format_nested_tweet(t.get("retweeted_tweet"), next_depth, seen_ids)
     return base
 
-def save_fields(t: dict) -> dict:
+def save_fields_old(t: dict) -> dict:
     """Top-level tweet formatter (ordered) + normalized nested tweets."""
     out = _trim_tweet_core(t)
     out["quoted_tweet"]    = _format_nested_tweet(t.get("quoted_tweet"),    MAX_NESTED_TWEET_DEPTH)
     out["retweeted_tweet"] = _format_nested_tweet(t.get("retweeted_tweet"), MAX_NESTED_TWEET_DEPTH)
     return out
+
+def save_fields(t: dict) -> dict: # NO TRIMMING
+    return t
 
 def _items_from_thread_page(page: dict) -> List[dict]:
     """Prefer 'replies', fall back to 'tweets' (twitterapi.io sometimes uses either)."""
