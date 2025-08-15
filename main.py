@@ -219,7 +219,7 @@ def run_streaming(handle="grok",
     finally:
         elapsed = time.time() - t0
         logging.info(
-            "Run summary — elapsed=%.1fs | conversations=%d | search_pages=%d | upserts≈%d | api_success=%d / attempts=%d",
+            "Done! Run summary — elapsed=%.1fs | conversations=%d | search_pages=%d | upserts≈%d | api_success=%d / attempts=%d",
             elapsed, len(seen), total_search_pages, total_upserts, SUCCESSFUL_API_CALLS, TOTAL_API_CALLS
         )
 
