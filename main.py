@@ -27,7 +27,7 @@ TOTAL_API_CALLS = 0
 SUCCESSFUL_API_CALLS=0
 
 # Makes ONE http request
-def http_get(path: str, params: Optional[dict] = None, max_retries: int = 4, timeout: int = 30) -> dict:
+def http_get(path: str, params: Optional[dict] = None, max_retries: int = 2, timeout: int = 30) -> dict:
     global TOTAL_API_CALLS, SUCCESSFUL_API_CALLS
     
     url = f"{API_BASE}{path}"
@@ -41,12 +41,16 @@ def http_get(path: str, params: Optional[dict] = None, max_retries: int = 4, tim
             if resp.status_code == 200:
                 try:
                     SUCCESSFUL_API_CALLS += 1
-                    logging.info("✅ Success: %s (attempt %d/%d)", path, attempt + 1, max_retries)
+                    if params.get("tweetId"):  
+                        logging.info("✅ Success: %s for conversation %s (attempt %d/%d)", path, params.get("tweetId"), attempt + 1, max_retries)
+                    else:
+                        logging.info("✅ Success: %s (attempt %d/%d)", path, attempt + 1, max_retries)
+
                     return resp.json()
                 except ValueError as e:
                     logging.error("🚫\tInvalid JSON from %s: %s", url, e)
                     last_exc = e
-                    time.sleep(backoff)
+                    time.sleep(5)#!! change to backoff when we have the paid version
                     backoff *= 2
                     continue
 
@@ -166,13 +170,13 @@ def run_streaming(handle="grok",
             total_search_pages += 1
 
             # Extract conv→reply ids from THIS search page only
-            conv_to_ids: Dict[str, List[str]] = {}
+            conv_to_ids: Dict[str, Set] = {}
             _, items = extract_items(search_page)
             for t in items:
                 conv = t.get("conversationId")
                 tid = t.get("id")
                 if conv and tid:
-                    conv_to_ids.setdefault(conv, []).append(tid)
+                    conv_to_ids.setdefault(conv, set()).add(tid)
 
             for conv_id, reply_ids in conv_to_ids.items():
                 # logic to handle # conversations
@@ -226,8 +230,8 @@ def run_streaming(handle="grok",
 if __name__ == "__main__":
     run_streaming(
         handle="grok",
-        since="2025-08-05 00:00:00",
-        until="2025-08-05 00:00:01",
+        since="2025-08-01 00:00:00",
+        until="2025-08-01 23:59:59",
         query_type="Latest",
         include_self_threads=False,
         include_quotes=False,
