@@ -108,8 +108,13 @@ def fetch_thread_pages_stream(tweet_id: str):
     cursor = ""
     while True:
         page = http_get("/twitter/tweet/thread_context", {"tweetId": str(tweet_id), "cursor": cursor})
-        yield page # same thing here, we YIELD pages
-        if not page.get("has_next_page"):
+        yield page # same thing here, we YIELD pages (which is an array) so we get them one at a time
+        if not page or not page.get("tweets"):
+            break # no page
+        last_reply = page.get("tweets")[-1] # we check the LAST page and see if it has replies
+        
+        # if the last reply in the page response has 0 replies then we know there is no point in making another call even if cursor is not None
+        if not page.get("has_next_page") or (last_reply.get("replyCount") is not None and last_reply.get("replyCount") <= 0):
             break
         cursor = page.get("next_cursor") or ""
         if not cursor:
@@ -238,5 +243,5 @@ if __name__ == "__main__":
         include_retweets=False,
         build_final_json=True,
         out_path="grok_data/data.json",
-        number_conversations=10 # !! default value is 0, must set it here!
+        number_conversations=5 # !! default value is 0, must set it here!
     )
