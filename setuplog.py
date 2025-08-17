@@ -7,7 +7,7 @@ class _FileLineFilter(logging.Filter):
         record.fileline = f"{record.filename}:{record.lineno}"
         return True
 
-def setup_logging(run_name: str = "crawl", log_dir: str = "logs",
+def setup_logging(run_name: str = "run", log_dir: str = "logs",
                   level: str | None = None, to_stdout: bool = True):
     root = logging.getLogger()
     if root.handlers:

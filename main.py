@@ -1,6 +1,6 @@
 # set up logging
-from setuplog import setup_logging
-LOG_PATH = setup_logging(run_name="run", log_dir="logs", to_stdout=False)
+import logging
+logging.getLogger(__name__)
 
 import os
 import sys
@@ -247,3 +247,7 @@ if __name__ == "__main__":
         out_path="grok_data/data.json",
         number_conversations=1 # !! default value is 0, must set it here!
     )
+    
+    
+    
+    
