@@ -2,9 +2,9 @@
 import logging
 logging.getLogger(__name__)
 
-from typing import Dict, List, Optional, Tuple, Set
-import json, os, tempfile
-from storage import init_db, load_checkpoint, save_checkpoint
+from typing import Dict, List, Optional, Set
+import json, os
+from storage import init_db
 
 def format_time_utc(ts: str) -> str:
     ts = ts.strip()

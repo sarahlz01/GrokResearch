@@ -27,11 +27,11 @@ TOTAL_API_CALLS = 0
 SUCCESSFUL_API_CALLS=0
 
 # Makes ONE http request
-def http_get(path: str, params: Optional[dict] = None, max_retries: int = 2, timeout: int = 30) -> dict:
+def http_get(path: str, params: Optional[dict] = None, max_retries: int = 3, timeout: int = 30) -> dict:
     global TOTAL_API_CALLS, SUCCESSFUL_API_CALLS
     
     url = f"{API_BASE}{path}"
-    backoff = 1.0
+    backoff = 5
     last_exc = None
 
     for attempt in range(max_retries):
@@ -41,8 +41,9 @@ def http_get(path: str, params: Optional[dict] = None, max_retries: int = 2, tim
             if resp.status_code == 200:
                 try:
                     SUCCESSFUL_API_CALLS += 1
-                    if params.get("tweetId"):  
-                        logging.info("✅ Success: %s for conversation %s (attempt %d/%d)", path, params.get("tweetId"), attempt + 1, max_retries)
+                    p = params or {}
+                    if p.get("tweetId"):  
+                        logging.info("✅ Success: %s for conversation %s (attempt %d/%d)", path, p.get("tweetId"), attempt + 1, max_retries)
                     else:
                         logging.info("✅ Success: %s (attempt %d/%d)", path, attempt + 1, max_retries)
 
@@ -50,7 +51,7 @@ def http_get(path: str, params: Optional[dict] = None, max_retries: int = 2, tim
                 except ValueError as e:
                     logging.error("🚫\tInvalid JSON from %s: %s", url, e)
                     last_exc = e
-                    time.sleep(5)#!! change to backoff when we have the paid version
+                    time.sleep(backoff)#!! change to backoff when we have the paid version
                     backoff *= 2
                     continue
 
@@ -59,7 +60,7 @@ def http_get(path: str, params: Optional[dict] = None, max_retries: int = 2, tim
                     "⚠️\tHTTP %s on %s (%d/%d). Backing off %.1f s... | VERBOSE : %s",
                     resp.status_code, path, attempt + 1, max_retries, backoff, resp.text
                 )
-                time.sleep(5)  #!! change to backoff when we have the paid version
+                time.sleep(backoff)  #!! change to backoff when we have the paid version
                 backoff *= 2
                 continue
 
@@ -109,9 +110,10 @@ def fetch_thread_pages_stream(tweet_id: str):
     while True:
         page = http_get("/twitter/tweet/thread_context", {"tweetId": str(tweet_id), "cursor": cursor})
         yield page # same thing here, we YIELD pages (which is an array) so we get them one at a time
-        if not page or not page.get("tweets"):
+        key, items = extract_items(page)          # <-- use your normalizer
+        if not page or not items:
             break # no page
-        last_reply = page.get("tweets")[-1] # we check the LAST page and see if it has replies
+        last_reply = items[-1] # we check the LAST page and see if it has replies
         
         # if the last reply in the page response has 0 replies then we know there is no point in making another call even if cursor is not None
         if not page.get("has_next_page") or (last_reply.get("replyCount") is not None and last_reply.get("replyCount") <= 0):
@@ -243,5 +245,5 @@ if __name__ == "__main__":
         include_retweets=False,
         build_final_json=True,
         out_path="grok_data/data.json",
-        number_conversations=0 # !! default value is 0, must set it here!
+        number_conversations=1 # !! default value is 0, must set it here!
     )
