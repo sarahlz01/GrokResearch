@@ -218,14 +218,12 @@ def run_streaming(handle="grok",
             return export_json_from_db(out_path=out_path, grok_username=handle)
         return None
     except Exception as e:
-        logging.error("Dumping partial DB to JSON due to error: %s", e)
+        logging.error("🚫\tDumping partial DB to JSON due to error: %s", e)
         try:
             export_json_from_db(out_path=out_path, grok_username=handle)
-            logging.info("💾 Partial dump complete: %s", out_path)
-            logging.info("Done.")
+            logging.info("💾\tPartial dump complete: %s", out_path)
         except Exception as dump_err:
-            logging.error("🚫 Failed to dump partial JSON after error: %s", dump_err)
-            logging.info("Done.")
+            logging.error("🚫\tFailed to dump partial JSON after error: %s", dump_err)
         raise # re-raise so callers know the run failed (remove if you prefer to swallow)
     finally:
         elapsed = time.time() - t0
@@ -233,20 +231,6 @@ def run_streaming(handle="grok",
             "Done! Run summary — elapsed=%.1fs | conversations=%d | search_pages=%d | upserts≈%d | api_success=%d / attempts=%d",
             elapsed, len(seen), total_search_pages, total_upserts, SUCCESSFUL_API_CALLS, TOTAL_API_CALLS
         )
-
-if __name__ == "__main__":
-    run_streaming(
-        handle="grok",
-        since="2025-08-05 00:00:00",
-        until="2025-08-05 00:00:01",
-        query_type="Latest",
-        include_self_threads=False,
-        include_quotes=False,
-        include_retweets=False,
-        build_final_json=True,
-        out_path="grok_data/data.json",
-        number_conversations=1 # !! default value is 0, must set it here!
-    )
     
     
     
