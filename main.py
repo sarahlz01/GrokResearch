@@ -1,6 +1,6 @@
 # set up logging
-from setuplog import setup_logging
-LOG_PATH = setup_logging(run_name="run", log_dir="logs", to_stdout=False)
+import logging
+logging.getLogger(__name__)
 
 import os
 import sys
@@ -27,11 +27,11 @@ TOTAL_API_CALLS = 0
 SUCCESSFUL_API_CALLS=0
 
 # Makes ONE http request
-def http_get(path: str, params: Optional[dict] = None, max_retries: int = 4, timeout: int = 30) -> dict:
+def http_get(path: str, params: Optional[dict] = None, max_retries: int = 3, timeout: int = 30) -> dict:
     global TOTAL_API_CALLS, SUCCESSFUL_API_CALLS
     
     url = f"{API_BASE}{path}"
-    backoff = 1.0
+    backoff = 5
     last_exc = None
 
     for attempt in range(max_retries):
@@ -41,12 +41,17 @@ def http_get(path: str, params: Optional[dict] = None, max_retries: int = 4, tim
             if resp.status_code == 200:
                 try:
                     SUCCESSFUL_API_CALLS += 1
-                    logging.info("✅ Success: %s (attempt %d/%d)", path, attempt + 1, max_retries)
+                    p = params or {}
+                    if p.get("tweetId"):  
+                        logging.info("✅\tSuccess: %s for conversation %s (attempt %d/%d)", path, p.get("tweetId"), attempt + 1, max_retries)
+                    else:
+                        logging.info("✅\tSuccess: %s (attempt %d/%d)", path, attempt + 1, max_retries)
+
                     return resp.json()
                 except ValueError as e:
                     logging.error("🚫\tInvalid JSON from %s: %s", url, e)
                     last_exc = e
-                    time.sleep(backoff)
+                    time.sleep(backoff)#!! change to backoff when we have the paid version
                     backoff *= 2
                     continue
 
@@ -55,7 +60,7 @@ def http_get(path: str, params: Optional[dict] = None, max_retries: int = 4, tim
                     "⚠️\tHTTP %s on %s (%d/%d). Backing off %.1f s... | VERBOSE : %s",
                     resp.status_code, path, attempt + 1, max_retries, backoff, resp.text
                 )
-                time.sleep(5)  #!! change to backoff when we have the paid version
+                time.sleep(backoff)  #!! change to backoff when we have the paid version
                 backoff *= 2
                 continue
 
@@ -104,8 +109,14 @@ def fetch_thread_pages_stream(tweet_id: str):
     cursor = ""
     while True:
         page = http_get("/twitter/tweet/thread_context", {"tweetId": str(tweet_id), "cursor": cursor})
-        yield page # same thing here, we YIELD pages
-        if not page.get("has_next_page"):
+        yield page # same thing here, we YIELD pages (which is an array) so we get them one at a time
+        key, items = extract_items(page)          # <-- use your normalizer
+        if not page or not items:
+            break # no page
+        last_reply = items[-1] # we check the LAST page and see if it has replies
+        
+        # if the last reply in the page response has 0 replies then we know there is no point in making another call even if cursor is not None
+        if not page.get("has_next_page") or (last_reply.get("replyCount") is not None and last_reply.get("replyCount") <= 0):
             break
         cursor = page.get("next_cursor") or ""
         if not cursor:
@@ -166,17 +177,16 @@ def run_streaming(handle="grok",
             total_search_pages += 1
 
             # Extract conv→reply ids from THIS search page only
-            conv_to_ids: Dict[str, List[str]] = {}
+            conv_to_ids: Dict[str, Set] = {}
             _, items = extract_items(search_page)
             for t in items:
                 conv = t.get("conversationId")
                 tid = t.get("id")
                 if conv and tid:
-                    conv_to_ids.setdefault(conv, []).append(tid)
+                    conv_to_ids.setdefault(conv, set()).add(tid)
 
             for conv_id, reply_ids in conv_to_ids.items():
                 # logic to handle # conversations
-                print(len(seen))
                 if number_conversations <= 0 or len(seen) >= number_conversations:
                     stop = True
                     break
@@ -207,14 +217,12 @@ def run_streaming(handle="grok",
             return export_json_from_db(out_path=out_path, grok_username=handle)
         return None
     except Exception as e:
-        logging.error("Dumping partial DB to JSON due to error: %s", e)
+        logging.error("🚫\tDumping partial DB to JSON due to error: %s", e)
         try:
             export_json_from_db(out_path=out_path, grok_username=handle)
-            logging.info("💾 Partial dump complete: %s", out_path)
-            logging.info("Done.")
+            logging.info("💾\tPartial dump complete: %s", out_path)
         except Exception as dump_err:
-            logging.error("🚫 Failed to dump partial JSON after error: %s", dump_err)
-            logging.info("Done.")
+            logging.error("🚫\tFailed to dump partial JSON after error: %s", dump_err)
         raise # re-raise so callers know the run failed (remove if you prefer to swallow)
     finally:
         elapsed = time.time() - t0
@@ -222,17 +230,7 @@ def run_streaming(handle="grok",
             "Done! Run summary — elapsed=%.1fs | conversations=%d | search_pages=%d | upserts≈%d | api_success=%d / attempts=%d",
             elapsed, len(seen), total_search_pages, total_upserts, SUCCESSFUL_API_CALLS, TOTAL_API_CALLS
         )
-
-if __name__ == "__main__":
-    run_streaming(
-        handle="grok",
-        since="2025-08-05 00:00:00",
-        until="2025-08-05 00:00:01",
-        query_type="Latest",
-        include_self_threads=False,
-        include_quotes=False,
-        include_retweets=False,
-        build_final_json=True,
-        out_path="grok_data/data.json",
-        number_conversations=10 # !! default value is 0, must set it here!
-    )
+    
+    
+    
+    

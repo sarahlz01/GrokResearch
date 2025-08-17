@@ -3,7 +3,7 @@ import os
 import json
 import sqlite3
 from typing import Iterable, Optional, Tuple
-from datetime import datetime, timezone
+from datetime import datetime
 
 DEFAULT_DB_PATH = os.getenv("GROK_DB_PATH", "grok_data/grok.sqlite3")
 
