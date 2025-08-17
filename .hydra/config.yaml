@@ -1,16 +1,8 @@
-hydra:
-  run:
-    dir: .
-    output_subdir: null
-  job:
-    chdir: false
-
 date:
   year: 2025
   month: 8
   since_day: 6
   until_day: 6
-
 settings:
   handle: grok
   query_type: Latest
@@ -19,9 +11,8 @@ settings:
   include_retweets: false
   block_hours: 24
   number_conversations: 5
-  build_final_json: false
+  build_final_json: true
   out_path: grok_data/data.json
-
 logging:
   run_name: crawl_test
   to_stdout: false

@@ -37,7 +37,7 @@ class Config:
     settings: SettingsCfg
     logging: LoggingCfg
 
-@hydra.main(config_path="conf", config_name="config", version_base=None)
+@hydra.main(config_path="conf", config_name=None, version_base=None)
 def main(cfg: DictConfig):
     setup_logging(run_name=cfg.logging.run_name, log_dir="logs", to_stdout=cfg.logging.to_stdout)
 
@@ -54,13 +54,12 @@ def main(cfg: DictConfig):
 
     for day in range(start_day, end_day + 1):
         for block_start in range(0, 24, block_hours):
-            logging.info("▶️\tBlock %s → %s | handle=%s | cap=%d",
-             since, until, cfg.settings.handle, cfg.settings.number_conversations)
             start_dt = datetime(year, month, day, block_start, 0, 0, tzinfo=timezone.utc)
             end_dt = start_dt + timedelta(hours=block_hours)
 
             since = api_ts(start_dt)
             until = api_ts(end_dt)
+            logging.info("▶️\tBlock %s → %s | handle=%s | cap=%d", since, until, cfg.settings.handle, cfg.settings.number_conversations)
             try:
                 run_streaming(
                     handle=cfg.settings.handle,
@@ -99,3 +98,8 @@ def validate_input_date(year: int, month: int, since_day: int, until_day: int, b
     if not (1 <= block_hours <= 24):
         logging.error("🚫\tinvalid block_hours: %s", block_hours); ok = False
     return ok
+
+if __name__ == "__main__":
+    print("Running!")
+    main()
+    print("Done! Check logs.")

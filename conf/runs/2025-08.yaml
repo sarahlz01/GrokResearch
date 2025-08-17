@@ -1,13 +1,17 @@
+defaults:
+  - override hydra/job_logging: disabled
+  - override hydra/hydra_logging: disabled
+  - _self_
+
 hydra:
   run:
     dir: .
-    output_subdir: null
   job:
     chdir: false
 
 date:
   year: 2025
-  month: 3
+  month: 8
   since_day: 1
   until_day: 31
 
@@ -23,5 +27,5 @@ settings:
   out_path: grok_data/data.json
 
 logging:
-  run_name: crawl_2025-03
+  run_name: crawl_2025-08
   to_stdout: false

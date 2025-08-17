@@ -187,7 +187,6 @@ def run_streaming(handle="grok",
 
             for conv_id, reply_ids in conv_to_ids.items():
                 # logic to handle # conversations
-                print(len(seen))
                 if number_conversations <= 0 or len(seen) >= number_conversations:
                     stop = True
                     break
