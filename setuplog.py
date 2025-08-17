@@ -2,8 +2,15 @@
 from pathlib import Path
 from datetime import datetime
 import logging, os, sys
+from typing import Optional
 
-def setup_logging(run_name: str = "run", log_dir: str = "logs", level: str | None = None, to_stdout: bool = True):
+
+def setup_logging(
+    run_name: str = "run",
+    log_dir: str = "logs",
+    level: Optional[str] = None,
+    to_stdout: bool = True,
+):
     """
     Configure root logger once per process. Returns the Path of the log file.
     If logging is already configured, reuses existing handlers and returns RUN_LOG_PATH if set.
@@ -17,14 +24,18 @@ def setup_logging(run_name: str = "run", log_dir: str = "logs", level: str | Non
     ts = datetime.now().strftime("(%Y-%m-%d)_(%H-%M-%S)")
     log_path = Path(log_dir) / f"{run_name}_{ts}.log"
 
-    fmt = logging.Formatter("%(asctime)s | [%(levelname)-8s] | %(name)s | %(message)s", "%Y-%m-%d %H:%M:%S")
+    fmt = logging.Formatter(
+        "%(asctime)s | [%(levelname)-8s] | %(name)s | %(message)s", "%Y-%m-%d %H:%M:%S"
+    )
 
     fh = logging.FileHandler(log_path, encoding="utf-8")
     fh.setFormatter(fmt)
     handlers = [fh]
 
     if to_stdout:
-        sh = logging.StreamHandler(sys.stdout)  # use stdout; swap to stderr if you prefer
+        sh = logging.StreamHandler(
+            sys.stdout
+        )  # use stdout; swap to stderr if you prefer
         sh.setFormatter(fmt)
         handlers.append(sh)
 
