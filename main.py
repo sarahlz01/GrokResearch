@@ -243,5 +243,5 @@ if __name__ == "__main__":
         include_retweets=False,
         build_final_json=True,
         out_path="grok_data/data.json",
-        number_conversations=1 # !! default value is 0, must set it here!
+        number_conversations=0 # !! default value is 0, must set it here!
     )

@@ -289,21 +289,19 @@ def transform_conversations_to_threads(
     out_path: str,
     grok_username: str = "grok",
     merge_single_grok: bool = True,
-    include_root_once_in_first: bool = True,  # still used for the single-thread collapse case
+    include_root_once_in_first: bool = True,  # used only for the single-thread collapse case
 ) -> List[dict]:
     """
     Read the raw dump and produce threaded JSON per conversation:
       [
-        {"conversationId": "...", "threads": [{"threadId": "...", "tweets": [...]}, ...]},
+        {
+          "conversationId": "...",
+          "threads": [{"threadId": "...", "tweets": [...]}, ...],
+          "hasMissingParent": bool,
+          "hasMultipleThreads": bool
+        },
         ...
       ]
-
-    Rules:
-      - Branch = 'first child under the root'; if parent chain breaks, branch = highest known ancestor
-      - No root-only phantom thread
-      - Global de-dup across all threads in a conversation (except we allow the root in every thread on purpose)
-      - If exactly one Grok reply exists and merge_single_grok=True → collapse to ONE thread
-      - Otherwise, one thread per branch; insert root at the start of **every** thread
     """
     with open(raw_path, "r", encoding="utf-8") as f:
         raw = json.load(f)
@@ -314,7 +312,7 @@ def transform_conversations_to_threads(
         conv_id = conv.get("conversationId")
         tweets = [t for t in (conv.get("tweets") or []) if isinstance(t, dict)]
         if not conv_id or not tweets:
-            out_list.append({"conversationId": conv_id, "threads": []})
+            out_list.append({"conversationId": conv_id, "threads": [], "hasMissingParent": False, "hasMultipleThreads": False})
             continue
 
         by_id: Dict[str, dict] = {}
@@ -335,6 +333,14 @@ def transform_conversations_to_threads(
         ordered_ids = sorted(by_id.keys(), key=lambda i: (ts_by_id.get(i, 0), i))
         root_id = conv_id
         root_tweet = by_id.get(root_id)
+
+        # --- detect locally-missing parents (likely deleted/never-scraped)
+        has_missing_parent = False
+        for tid in ordered_ids:
+            pid = parent.get(tid)
+            if pid and pid not in by_id:  # parent referenced but not present in this convo's raw tweets
+                has_missing_parent = True
+                break
 
         def branch_key_for(tid: str) -> str:
             seen = set()
@@ -378,10 +384,16 @@ def transform_conversations_to_threads(
                 if tid in by_id and tid not in seen_ids:
                     merged.append(by_id[tid]); seen_ids.add(tid)
             only_grok = next(iter(grok_ids))
-            out_list.append({"conversationId": conv_id, "threads": [{"threadId": only_grok, "tweets": merged}]})
+            threads_out = [{"threadId": only_grok, "tweets": merged}]
+            out_list.append({
+                "conversationId": conv_id,
+                "threads": threads_out,
+                "hasMissingParent": has_missing_parent,
+                "hasMultipleThreads": False
+            })
             continue
 
-        # Otherwise: one thread per branch with global de-dup (root will be added separately to each thread)
+        # Otherwise: one thread per branch with global de-dup (root will be added to every thread)
         global_seen: Set[str] = set()
         threads_out: List[dict] = []
 
@@ -405,28 +417,31 @@ def transform_conversations_to_threads(
 
             threads_out.append({"threadId": rep, "tweets": ordered})
 
-        # >>> CHANGE: Insert root at the start of EVERY thread (if present)
+        # Insert root at the start of EVERY thread (if present)
         if root_tweet is not None and threads_out:
             for th in threads_out:
-                # don't double-insert if the thread already begins with the root
                 if not th["tweets"] or th["tweets"][0].get("id") != root_id:
-                    # also avoid duplicating if root already exists later in this thread
                     present_ids = {t.get("id") for t in th["tweets"] if isinstance(t, dict)}
                     if root_id not in present_ids:
                         th["tweets"].insert(0, by_id[root_id])
                     else:
-                        # if root exists later, move it to the front
                         th["tweets"] = [by_id[root_id]] + [t for t in th["tweets"] if t.get("id") != root_id]
 
-        out_list.append({"conversationId": conv_id, "threads": threads_out})
+        out_list.append({
+            "conversationId": conv_id,
+            "threads": threads_out,
+            "hasMissingParent": has_missing_parent,
+            "hasMultipleThreads": len(threads_out) > 1
+        })
 
-    # simple write (no atomic swap)
+    # write out
     os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(out_list, f, ensure_ascii=False, indent=2)
 
     logging.info("Transform complete: %d conversation(s) → %s", len(out_list), out_path)
     return out_list
+
 
 
 def export_json_from_db(out_path: str, grok_username: str = "grok"):
