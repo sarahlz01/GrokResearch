@@ -11,4 +11,3 @@ To run this code, run the following commands
 Notes
 
 - The grok_sqlit3 database is never wiped clean before each run. It's updated each time, so for testing, delete the sqlite file and the JSON file and run the test
-
