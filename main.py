@@ -43,9 +43,9 @@ def http_get(path: str, params: Optional[dict] = None, max_retries: int = 3, tim
                     SUCCESSFUL_API_CALLS += 1
                     p = params or {}
                     if p.get("tweetId"):  
-                        logging.info("✅ Success: %s for conversation %s (attempt %d/%d)", path, p.get("tweetId"), attempt + 1, max_retries)
+                        logging.info("✅\tSuccess: %s for conversation %s (attempt %d/%d)", path, p.get("tweetId"), attempt + 1, max_retries)
                     else:
-                        logging.info("✅ Success: %s (attempt %d/%d)", path, attempt + 1, max_retries)
+                        logging.info("✅\tSuccess: %s (attempt %d/%d)", path, attempt + 1, max_retries)
 
                     return resp.json()
                 except ValueError as e:

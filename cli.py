@@ -54,7 +54,7 @@ def main(cfg: DictConfig):
 
     for day in range(start_day, end_day + 1):
         for block_start in range(0, 24, block_hours):
-            logging.info("▶️  Block %s → %s | handle=%s | cap=%d",
+            logging.info("▶️\tBlock %s → %s | handle=%s | cap=%d",
              since, until, cfg.settings.handle, cfg.settings.number_conversations)
             start_dt = datetime(year, month, day, block_start, 0, 0, tzinfo=timezone.utc)
             end_dt = start_dt + timedelta(hours=block_hours)
@@ -75,7 +75,7 @@ def main(cfg: DictConfig):
                     number_conversations=cfg.settings.number_conversations,
                 )
             except KeyboardInterrupt:
-                logging.error("❗❗\tInterrupted; aborting remaining blocks.")
+                logging.error("‼️\tInterrupted; aborting remaining blocks.")
                 raise
             except Exception as e:
                 logging.exception("🚫\tBlock failed: %s → %s.\tVerbose error: %s", since, until, e)
