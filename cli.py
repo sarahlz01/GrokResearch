@@ -1,3 +1,7 @@
+import sys
+assert (sys.prefix != sys.base_prefix), "Make sure you have setup the venv and activated it by calling:\tsource venv/bin/activate.\nCheck README for more information"
+
+
 from calendar import monthrange
 from datetime import datetime, timedelta, timezone
 import hydra
@@ -53,6 +57,8 @@ def main(cfg: DictConfig):
         raise SystemExit(1)
 
     for day in range(start_day, end_day + 1):
+        logging.info("\n\n")
+        logging.info("⏱️\tScraping %d-%d day %d/%d", month, year, day, end_day)
         for block_start in range(0, 24, block_hours):
             start_dt = datetime(year, month, day, block_start, 0, 0, tzinfo=timezone.utc)
             end_dt = start_dt + timedelta(hours=block_hours)
