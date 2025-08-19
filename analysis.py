@@ -43,3 +43,11 @@ def preprocess_data(data):
     df = pd.DataFrame(rows)
     df["reply.length"]= de["text"].str.len()
     return df
+
+def basic_statistics(df:pd.DataFrame):
+    """ This funciton provides basic stats to get a quick overview of the dataset"""
+    print("Total tweets:", len(df))
+    print("Total conversations:", df["conversationId"].nunique())
+    print("Total unique users:", df["authorId"].nunique())
+    print("Avg reply length:", df["replyLength"].mean())
+
