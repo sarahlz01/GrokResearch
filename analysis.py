@@ -45,9 +45,18 @@ def preprocess_data(data):
     return df
 
 def basic_statistics(df:pd.DataFrame):
-    """ This funciton provides basic stats to get a quick overview of the dataset"""
+    #This funciton provides basic stats to get a quick overview of the dataset
     print("Total tweets:", len(df))
     print("Total conversations:", df["conversationId"].nunique())
     print("Total unique users:", df["authorId"].nunique())
     print("Avg reply length:", df["replyLength"].mean())
+
+def user_distribution(df: pd.DataFrame):
+    # categorizes user distribution by verification status and follower count
+    print("Verified users:", df["verified"].sum())
+    print("Unverified users:", len(df) - df["verified"].sum())
+    bins = [0, 100, 1000, 10000, 100000, np.inf]
+    labels = ["0-100", "101-1k", "1k-10k", "10k-100k", "100k+"]
+    df["follower_bucket"] = pd.cut(df["followersCount"], bins=bins, labels=labels)
+    print(df["follower_bucket"].value_counts())
 
