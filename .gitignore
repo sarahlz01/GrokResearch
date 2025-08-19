@@ -1,10 +1,8 @@
 .env
 .DS_Store
 /venv
-/grok_data
 /__pycache__
 /archive/mydata
 /archive/__pycache__
-/logs
 prac.py
 /outputs
