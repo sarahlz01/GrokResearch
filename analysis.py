@@ -21,7 +21,7 @@ def preprocess_data(data):
     for conv in data:
         for thread in conv.get("threads",[]):
             for tweet in thread.get("tweets",[]):
-                author=tweet.get("author",{}):
+                author=tweet.get("author",{})
                 rows.append({
                     "conversationId": tweet.get("conversationId"),
                     "threadId": thread.get("threadId"),
@@ -41,7 +41,7 @@ def preprocess_data(data):
                     "isReply": tweet.get("isReply", False)
                 })
     df = pd.DataFrame(rows)
-    df["reply.length"]= de["text"].str.len()
+    df["replyLength"]= df["text"].str.len()
     return df
 
 def basic_statistics(df:pd.DataFrame):
@@ -59,4 +59,17 @@ def user_distribution(df: pd.DataFrame):
     labels = ["0-100", "101-1k", "1k-10k", "10k-100k", "100k+"]
     df["follower_bucket"] = pd.cut(df["followersCount"], bins=bins, labels=labels)
     print(df["follower_bucket"].value_counts())
+
+if __name__=="__main__":
+    filepath="grok_data/data.json"
+    data=load_json_data(filepath)
+    df=preprocess_data(data)
+    print("basic stats")
+    basic_statistics(df)
+    print("\n user distr")
+    user_distribution(df)
+
+
+
+
 
