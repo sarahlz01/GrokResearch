@@ -5,6 +5,11 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+from collections import Counter
+from wordcloud import WordCloud
+import nltk
+from nltk.corpus import stopwords
+from sklearn.feature_extraction.text import CountVectorizer
 
 sns.set(style="whitegrid")
 
@@ -60,6 +65,39 @@ def user_distribution(df: pd.DataFrame):
     df["follower_bucket"] = pd.cut(df["followersCount"], bins=bins, labels=labels)
     print(df["follower_bucket"].value_counts())
 
+def topic_analysis(df: pd.DataFrame, top_n=20, plot=True):
+    # analyzes word frequency and optional word cloud
+    # takes in top_n ( number of words to display) as one of the arguments, can be modified
+    # returns a list  of tuples(word,count) of the most common words
+
+    text_data = df["text"].dropna().str.lower().str.replace(r'http\S+|[^a-z\s]', '', regex=True)
+    all_words = " ".join(text_data).split()
+    all_words = [w for w in all_words if w not in STOPWORDS]
+
+    word_counts = Counter(all_words)
+    top_words = word_counts.most_common(top_n)
+
+    #plotting the bar chart and word cloud when requested 
+    if plot:
+        # Barplot for top N words
+        plt.figure(figsize=(10,5))
+        sns.barplot(x=[w[1] for w in top_words], y=[w[0] for w in top_words], palette="viridis")
+        plt.title(f"Top {top_n} Words in Tweets")
+        plt.xlabel("Count")
+        plt.ylabel("Word")
+        plt.tight_layout()
+        plt.show()
+
+        # Word cloud visualization
+        wc = WordCloud(width=800, height=400, background_color="white", stopwords=STOPWORDS)
+        wc.generate(" ".join(all_words))
+        plt.figure(figsize=(12,6))
+        plt.imshow(wc, interpolation="bilinear")
+        plt.axis("off")
+        plt.show()
+    return top_words
+
+
 if __name__=="__main__":
     filepath="grok_data/data.json"
     data=load_json_data(filepath)
@@ -68,6 +106,7 @@ if __name__=="__main__":
     basic_statistics(df)
     print("\n user distr")
     user_distribution(df)
+
 
 
 
