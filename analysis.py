@@ -6,9 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from collections import Counter
-from wordcloud import WordCloud
-import nltk
-from nltk.corpus import stopwords
+from wordcloud import WordCloud, STOPWORDS
 from sklearn.feature_extraction.text import CountVectorizer
 
 sns.set(style="whitegrid")
@@ -106,6 +104,10 @@ if __name__=="__main__":
     basic_statistics(df)
     print("\n user distr")
     user_distribution(df)
+    print("\n=== Topic Analysis (Top Words & WordCloud) ===")
+    top_words = topic_analysis(df, top_n=20, plot=True) 
+
+
 
 
 
