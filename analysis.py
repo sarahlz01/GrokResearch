@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-from transformers import Counter
+
 
 sns.set(style="whitegrid") #for plots
 
@@ -109,49 +109,6 @@ def topic_analysis(df: pd.DataFrame, embedding_model_name="paraphrase-multilingu
     
     return topic_model, df
 
-    # # Create dictionary and corpus
-    # dictionary = corpora.Dictionary(df["tokens"])
-    # corpus = [dictionary.doc2bow(text) for text in df["tokens"]]
-
-    # # Training LDA model
-    # lda_model = models.LdaModel(corpus, num_topics=num_topics, id2word=dictionary, passes=10, random_state=42)
-
-    # # Printing for now
-    # topics = lda_model.print_topics(num_words=num_words)
-    # for topic in topics:
-    #     print(topic)
-    
-    # return lda_model, dictionary, corpus
-
-
-    # text_data = df["text"].dropna().str.lower().str.replace(r'http\S+|[^a-z\s]', '', regex=True)
-    # all_words = " ".join(text_data).split()
-    # all_words = [w for w in all_words if w not in STOPWORDS]
-
-    # word_counts = Counter(all_words)
-    # top_words = word_counts.most_common(top_n)
-
-    # #plotting the bar chart and word cloud when requested 
-    # if plot:
-    #     # Barplot for top N words
-    #     plt.figure(figsize=(10,5))
-    #     sns.barplot(x=[w[1] for w in top_words], y=[w[0] for w in top_words], palette="viridis")
-    #     plt.title(f"Top {top_n} Words in Tweets")
-    #     plt.xlabel("Count")
-    #     plt.ylabel("Word")
-    #     plt.tight_layout()
-    #     plt.show()
-
-    #     # Word cloud visualization
-    #     wc = WordCloud(width=800, height=400, background_color="white", stopwords=STOPWORDS)
-    #     wc.generate(" ".join(all_words))
-    #     plt.figure(figsize=(12,6))
-    #     plt.imshow(wc, interpolation="bilinear")
-    #     plt.axis("off")
-    #     plt.show()
-    # return top_words
-
-
 if __name__=="__main__":
     filepath="grok_data/data.json"
     data=load_json_data(filepath)
@@ -161,7 +118,7 @@ if __name__=="__main__":
     print("\n user distr")
     user_distribution(df)
     print("\n=== Topic Analysis with BERTopic ===")
-    topic_model, df = topic_analysis_bertopic(df)
+    topic_model, df = topic_analysis(df)
 
 
 
