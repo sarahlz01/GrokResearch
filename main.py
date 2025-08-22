@@ -203,7 +203,7 @@ def run_streaming(
     build_final_json: bool = False,
     out_path: str = "grok_data/data.json",
     number_conversations: int = 0,
-    MAX_REPLIES=50
+    MAX_REPLIES: int = 50
 ):
     global TOTAL_API_CALLS, SUCCESSFUL_API_CALLS
     db_conn = None

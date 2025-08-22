@@ -25,6 +25,7 @@ settings:
   number_conversations: 75
   build_final_json: false
   out_path: grok_data/data.json
+  MAX_REPLIES: 40
 
 logging:
   run_name: crawl_2025-03
