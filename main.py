@@ -203,6 +203,7 @@ def run_streaming(
     build_final_json: bool = False,
     out_path: str = "grok_data/data.json",
     number_conversations: int = 0,
+    MAX_REPLIES=50
 ):
     global TOTAL_API_CALLS, SUCCESSFUL_API_CALLS
     db_conn = None
@@ -252,7 +253,7 @@ def run_streaming(
                 seen.setdefault(conv_id, set())
                 
                 reached_reply_cap = False # stop discovering this specific conversation at a 40 tweet cap
-                MAX_REPLIES = 3
+                MAX_REPLIES = 40
                 per_conv_written = defaultdict(int)
                 for rid in reply_ids:
                     
@@ -366,6 +367,7 @@ if __name__ == "__main__":
             build_final_json=True,
             out_path="grok_data/data.json",
             number_conversations=5,  # Increase to get more conversations
+            MAX_REPLIES=50
         )
 
         logging.info("Collection completed successfully!")

@@ -1,18 +1,19 @@
 date:
   year: 2025
   month: 8
-  since_day: 3
-  until_day: 9
+  since_day: 6
+  until_day: 6
 settings:
   handle: grok
   query_type: Latest
   include_self_threads: false
   include_quotes: false
   include_retweets: false
-  block_hours: 6
-  number_conversations: 150
+  block_hours: 24
+  number_conversations: 5
   build_final_json: true
   out_path: grok_data/data.json
+  MAX_REPLIES: 40
 logging:
-  run_name: crawl_week_2025-08-03_to_09
+  run_name: crawl_test
   to_stdout: false
