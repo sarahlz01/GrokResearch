@@ -4,7 +4,8 @@ logging.getLogger(__name__)
 
 from typing import Dict, List, Optional, Set
 import json, os
-from storage import init_db
+from storage import init_db, load_capped_conversations
+
 
 def format_time_utc(ts: str) -> str:
     ts = ts.strip()
@@ -253,6 +254,11 @@ def dump_conversations_raw(out_path: str) -> List[dict]:
         "WHERE conversation_id IS NOT NULL "
         "ORDER BY conversation_id, created_at_ts, id"
     ).fetchall()
+    
+    try:
+        capped_convs = load_capped_conversations(conn)
+    except Exception:
+        capped_convs = set()
 
     conv_to_tweets: Dict[str, List[dict]] = {}
     seen_in_conv: Dict[str, Set[str]] = {}
@@ -270,8 +276,12 @@ def dump_conversations_raw(out_path: str) -> List[dict]:
         s.add(tid)
         conv_to_tweets.setdefault(conv_id, []).append(t)
 
-    out_list = [{"conversationId": cid, "tweets": conv_to_tweets[cid]} for cid in sorted(conv_to_tweets.keys())]
+    out_list = [{"conversationId": cid, "tweets": conv_to_tweets[cid], "isCapped": (cid in capped_convs)} for cid in sorted(conv_to_tweets.keys())]
 
+    try:
+        conn.close()
+    except Exception as e:
+        logging.warning("🚫\tError while trying to close DB. Verbose: %s", str(e))
     # simple write (no atomic swap)
     os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
     with open(out_path, "w", encoding="utf-8") as f:
@@ -310,9 +320,10 @@ def transform_conversations_to_threads(
 
     for conv in raw:
         conv_id = conv.get("conversationId")
+        is_capped = bool(conv.get("isCapped", False))
         tweets = [t for t in (conv.get("tweets") or []) if isinstance(t, dict)]
         if not conv_id or not tweets:
-            out_list.append({"conversationId": conv_id, "threads": [], "hasMissingParent": False, "hasMultipleThreads": False})
+            out_list.append({"conversationId": conv_id, "threads": [], "hasMissingParent": False, "hasMultipleThreads": False, "isCapped": is_capped})
             continue
 
         by_id: Dict[str, dict] = {}
@@ -389,7 +400,8 @@ def transform_conversations_to_threads(
                 "conversationId": conv_id,
                 "threads": threads_out,
                 "hasMissingParent": has_missing_parent,
-                "hasMultipleThreads": False
+                "hasMultipleThreads": False,
+                "isCapped": is_capped
             })
             continue
 
@@ -426,12 +438,12 @@ def transform_conversations_to_threads(
                         th["tweets"].insert(0, by_id[root_id])
                     else:
                         th["tweets"] = [by_id[root_id]] + [t for t in th["tweets"] if t.get("id") != root_id]
-
         out_list.append({
             "conversationId": conv_id,
             "threads": threads_out,
             "hasMissingParent": has_missing_parent,
-            "hasMultipleThreads": len(threads_out) > 1
+            "hasMultipleThreads": len(threads_out) > 1,
+            "isCapped": is_capped
         })
 
     # write out

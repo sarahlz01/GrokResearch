@@ -18,7 +18,7 @@ import requests
 from dotenv import load_dotenv
 
 from format_objects import build_query, export_json_from_db, save_fields
-from storage import init_db, upsert_tweets
+from storage import init_db, upsert_tweets, mark_conversation_capped
 
 # load env variables
 load_dotenv()
@@ -259,7 +259,6 @@ def run_streaming(
                     # stop early
                     if len(seen[conv_id]) >= MAX_REPLIES:
                         reached_reply_cap = True
-                        logging.info("⛓️‍💥\t Breaking: reached per-conversation cap (%d) for %s", MAX_REPLIES, conv_id)
                         break
                     
                     if rid in seen[conv_id]:
@@ -303,11 +302,16 @@ def run_streaming(
                         if reached_reply_cap:
                             break
                     if reached_reply_cap:
-                        logging.info("⛓️‍💥\t Breaking: reached per-conversation cap (%d) for %s", MAX_REPLIES, conv_id)
                         break
-                    
-
-            if stop:
+                if reached_reply_cap:   
+                    logging.info("⛓️‍💥\t Breaking: reached per-conversation cap (%d) for %s", MAX_REPLIES, conv_id)
+                    if db_conn:
+                        try:
+                            mark_conversation_capped(db_conn, conv_id)   # <-- record in DB
+                        except Exception as e:
+                            logging.warning("Could not mark cap for %s: %s", conv_id, e)
+                    continue # go to next conversation
+            if stop: # reached max conversation limit
                 break
 
         logging.info(
