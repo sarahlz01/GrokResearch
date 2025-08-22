@@ -206,6 +206,7 @@ def run_streaming(
     MAX_REPLIES: int = 50
 ):
     global TOTAL_API_CALLS, SUCCESSFUL_API_CALLS
+    print(MAX_REPLIES)
     db_conn = None
     stop = False
     t0 = time.time()
@@ -253,7 +254,6 @@ def run_streaming(
                 seen.setdefault(conv_id, set())
                 
                 reached_reply_cap = False # stop discovering this specific conversation at a 40 tweet cap
-                MAX_REPLIES = 40
                 per_conv_written = defaultdict(int)
                 for rid in reply_ids:
                     
