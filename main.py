@@ -206,7 +206,6 @@ def run_streaming(
     MAX_REPLIES: int = 50
 ):
     global TOTAL_API_CALLS, SUCCESSFUL_API_CALLS
-    print(MAX_REPLIES)
     db_conn = None
     stop = False
     t0 = time.time()
