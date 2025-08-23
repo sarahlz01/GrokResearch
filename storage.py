@@ -151,25 +151,3 @@ def load_checkpoint(conn: sqlite3.Connection, key: str) -> Optional[str]:
     cur = conn.execute("SELECT value FROM checkpoints WHERE key=?", (key,))
     row = cur.fetchone()
     return row[0] if row else None
-
-# --- Per-conversation cap helpers (no schema changes, reuse checkpoints) ---
-
-def mark_conversation_capped(conn: sqlite3.Connection, conv_id: str) -> None:
-    """Mark that we hit the per-conversation reply/tweet cap for this conversation."""
-    save_checkpoint(conn, f"cap:conv:{conv_id}", "1")
-
-def is_conversation_capped(conn: sqlite3.Connection, conv_id: str) -> bool:
-    """Return True iff cap was recorded for this conversation."""
-    v = load_checkpoint(conn, f"cap:conv:{conv_id}")
-    return v == "1"
-
-def load_capped_conversations(conn: sqlite3.Connection) -> set[str]:
-    """Return a set of conversationIds that are marked as capped."""
-    cur = conn.execute("SELECT key FROM checkpoints WHERE key LIKE 'cap:conv:%'")
-    out = set()
-    for (k,) in cur.fetchall():
-        # k looks like 'cap:conv:<conversationId>'
-        cid = k.split("cap:conv:", 1)[-1]
-        if cid:
-            out.add(cid)
-    return out

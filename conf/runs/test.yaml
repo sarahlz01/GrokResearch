@@ -25,7 +25,6 @@ settings:
   number_conversations: 5
   build_final_json: true
   out_path: grok_data/data.json
-  MAX_REPLIES: 2
 
 logging:
   run_name: crawl_test

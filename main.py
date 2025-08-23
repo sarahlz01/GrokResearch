@@ -1,5 +1,4 @@
 # set up logging
-from collections import defaultdict
 import logging
 
 logging.getLogger(__name__)
@@ -18,7 +17,7 @@ import requests
 from dotenv import load_dotenv
 
 from format_objects import build_query, export_json_from_db, save_fields
-from storage import init_db, upsert_tweets, mark_conversation_capped
+from storage import init_db, upsert_tweets
 
 # load env variables
 load_dotenv()
@@ -172,8 +171,9 @@ def fetch_thread_pages_stream(tweet_id: str):
             break
 
 
-def extract_reply_ids_from_pages(
-    pages_or_single, conversation_id: str) -> Set[str]:
+def extract_grok_reply_ids_from_pages(
+    pages_or_single, conversation_id: str, grok_username: str = "grok"
+) -> Set[str]:
     it = pages_or_single if isinstance(pages_or_single, list) else [pages_or_single]
     found: Set[str] = set()
     for page in it:
@@ -182,6 +182,8 @@ def extract_reply_ids_from_pages(
             if not isinstance(t, dict):
                 continue
             if t.get("conversationId") != conversation_id:
+                continue
+            if (t.get("author") or {}).get("userName") != grok_username:
                 continue
             if not t.get("isReply"):
                 continue
@@ -203,7 +205,6 @@ def run_streaming(
     build_final_json: bool = False,
     out_path: str = "grok_data/data.json",
     number_conversations: int = 0,
-    MAX_REPLIES: int = 50
 ):
     global TOTAL_API_CALLS, SUCCESSFUL_API_CALLS
     db_conn = None
@@ -251,16 +252,8 @@ def run_streaming(
                     stop = True
                     break
                 seen.setdefault(conv_id, set())
-                
-                reached_reply_cap = False # stop discovering this specific conversation at a 40 tweet cap
-                per_conv_written = defaultdict(int)
+
                 for rid in reply_ids:
-                    
-                    # stop early
-                    if len(seen[conv_id]) >= MAX_REPLIES:
-                        reached_reply_cap = True
-                        break
-                    
                     if rid in seen[conv_id]:
                         continue
                     seen[conv_id].add(rid)
@@ -268,50 +261,26 @@ def run_streaming(
                     for page in fetch_thread_pages_stream(rid):
                         _, page_items = extract_items(page)
                         if db_conn and page_items:
-                            normalized = [save_fields(t)for t in page_items if isinstance(t, dict)]
+                            normalized = [
+                                save_fields(t)
+                                for t in page_items
+                                if isinstance(t, dict)
+                            ]
                             if normalized:
-                                # enforce a hard tweet cap per conversation (optional)
-                                remaining = MAX_REPLIES - per_conv_written[conv_id]
-                                if remaining <= 0:
-                                    reached_reply_cap = True
-                                    break
-                                if remaining < len(normalized):
-                                    normalized = normalized[:remaining]
-                                total_upserts += upsert_tweets(db_conn, normalized, batch_size=500, grok_username=handle) 
-                                per_conv_written[conv_id] += len(normalized)
-                        if per_conv_written[conv_id] >= MAX_REPLIES:
-                            reached_reply_cap = True
-                            break
-                        
-                        
-                        new_reply_ids = extract_reply_ids_from_pages(
-                            page, conversation_id=conv_id
-                        )       
-                        if new_reply_ids:
-                            remaining = MAX_REPLIES - len(seen[conv_id])
-                            if remaining <= 0:
-                                reached_reply_cap = True
-                                break
-                            # Add only up to the remaining budget
-                            for nid in new_reply_ids:
-                                if len(seen[conv_id]) >= MAX_REPLIES:
-                                    reached_reply_cap = True
-                                    break
-                                if nid not in seen[conv_id]:
-                                    seen[conv_id].add(nid)
-                        if reached_reply_cap:
-                            break
-                    if reached_reply_cap:
-                        break
-                if reached_reply_cap:   
-                    logging.info("⛓️‍💥\t Breaking: reached per-conversation cap (%d) for %s", MAX_REPLIES, conv_id)
-                    if db_conn:
-                        try:
-                            mark_conversation_capped(db_conn, conv_id)   # <-- record in DB
-                        except Exception as e:
-                            logging.warning("Could not mark cap for %s: %s", conv_id, e)
-                    continue # go to next conversation
-            if stop: # reached max conversation limit
+                                total_upserts += upsert_tweets(
+                                    db_conn,
+                                    normalized,
+                                    batch_size=500,
+                                    grok_username=handle,
+                                )
+
+                        new_groks = extract_grok_reply_ids_from_pages(
+                            page, conversation_id=conv_id, grok_username=handle
+                        )
+                        if new_groks:
+                            seen[conv_id].update(new_groks)
+
+            if stop:
                 break
 
         logging.info(
@@ -353,23 +322,34 @@ if __name__ == "__main__":
         level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
     )
 
+    # Try without time restrictions first to see if we can get any tweets
+    since = None
+    until = None
+
+    logging.info("Starting tweet collection...")
+    if since and until:
+        logging.info(f"Time range: {since} to {until}")
+    else:
+        logging.info("No time restrictions - collecting all available tweets")
+    logging.info("Target: 100+ tweets")
 
     try:
         result = run_streaming(
             handle="grok",
-            since="2025-08-05 00:00:00",  # CHANGE THESE FIELDS!
-            until="2025-08-05 00:00:01",
+            since=since,
+            until=until,
             query_type="Latest",
             include_self_threads=False,  # Try without self threads first
             include_quotes=False,  # Try without quotes first
             include_retweets=False,
             build_final_json=True,
-            out_path="grok_data/data.json",
-            number_conversations=5,  # Increase to get more conversations
-            MAX_REPLIES=50
+            out_path="grok_data/data2.json",
+            number_conversations=50,  # Increase to get more conversations
         )
 
         logging.info("Collection completed successfully!")
+        if result:
+            logging.info(f"Generated file: {result}")
 
     except Exception as e:
         logging.error(f"Collection failed: {e}")

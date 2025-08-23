@@ -29,7 +29,6 @@ class SettingsCfg:
     number_conversations: int = 150
     build_final_json: bool = True
     out_path: str = "grok_data/data.json"
-    MAX_REPLIES: int = 40
 
 @dataclass
 class LoggingCfg:
@@ -66,7 +65,7 @@ def main(cfg: DictConfig):
 
             since = api_ts(start_dt)
             until = api_ts(end_dt)
-            logging.info("▶️\tBlock %s → %s | handle=%s | conversation cap=%d | reply cap=%d", since, until, cfg.settings.handle, cfg.settings.number_conversations, cfg.settings.MAX_REPLIES)
+            logging.info("▶️\tBlock %s → %s | handle=%s | cap=%d", since, until, cfg.settings.handle, cfg.settings.number_conversations)
             try:
                 run_streaming(
                     handle=cfg.settings.handle,
@@ -79,7 +78,6 @@ def main(cfg: DictConfig):
                     build_final_json=cfg.settings.build_final_json,
                     out_path=cfg.settings.out_path,
                     number_conversations=cfg.settings.number_conversations,
-                    MAX_REPLIES=cfg.settings.MAX_REPLIES
                 )
             except KeyboardInterrupt:
                 logging.error("‼️\tInterrupted; aborting remaining blocks.")
