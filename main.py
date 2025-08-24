@@ -155,16 +155,14 @@ def search_grok_replies_stream(
             break
 
 
+# we only do ONE call because the pagination system is broken
 def fetch_thread_pages_stream(tweet_id: str):
     cursor = ""
-    while True:
-        page = http_get("/twitter/tweet/thread_context", {"tweetId": str(tweet_id), "cursor": cursor})
-        yield page # same thing here, we YIELD pages
-        if not page.get("has_next_page"):
-            break
-        cursor = page.get("next_cursor") or ""
-        if not cursor:
-            break
+    page = http_get(
+        "/twitter/tweet/thread_context",
+        {"tweetId": str(tweet_id), "cursor": cursor},
+    )
+    yield page  # same thing here, we YIELD pages (which is an array) so we get them one at a time
 
 def extract_grok_reply_ids_from_pages(
     pages_or_single, conversation_id: str, grok_username: str = "grok"

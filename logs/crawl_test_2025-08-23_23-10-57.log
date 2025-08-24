@@ -1,0 +1,108 @@
+2025-08-23 23:10:57 | INFO     | cli.py:60             | ▶️	Run starting
+2025-08-23 23:10:57 | INFO     | cli.py:63             | 
+
+
+2025-08-23 23:10:57 | INFO     | cli.py:64             | ⏱️	Scraping 8-2025 day 5/5
+2025-08-23 23:10:57 | INFO     | cli.py:71             | ▶️	Block 2025-08-05 00:00:00 → 2025-08-05 06:00:00 | handle=grok | cap=10
+2025-08-23 23:10:57 | INFO     | format_objects.py:29  | Built query:	from:grok filter:replies -filter:retweets -filter:quote -filter:self_threads since:2025-08-05_00:00:00_UTC until:2025-08-05_06:00:00_UTC
+2025-08-23 23:10:58 | INFO     | main.py:74            | ✅	Success: /twitter/tweet/advanced_search (attempt 1/3)
+2025-08-23 23:10:59 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952610517970993615 (attempt 1/3)
+2025-08-23 23:10:59 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952610517970993615 (attempt 1/3)
+2025-08-23 23:11:01 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952610517136425148 (attempt 1/3)
+2025-08-23 23:11:02 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952610517136425148 (attempt 1/3)
+2025-08-23 23:11:04 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952610516612096039 (attempt 1/3)
+2025-08-23 23:11:04 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952610516612096039 (attempt 1/3)
+2025-08-23 23:11:05 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952610515295080892 (attempt 1/3)
+2025-08-23 23:11:06 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952610515295080892 (attempt 1/3)
+2025-08-23 23:11:07 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952610513139245359 (attempt 1/3)
+2025-08-23 23:11:08 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952610513139245359 (attempt 1/3)
+2025-08-23 23:11:09 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952610512786866296 (attempt 1/3)
+2025-08-23 23:11:10 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952610512786866296 (attempt 1/3)
+2025-08-23 23:11:11 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952610512724013531 (attempt 1/3)
+2025-08-23 23:11:12 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952610512724013531 (attempt 1/3)
+2025-08-23 23:11:13 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952610511952167063 (attempt 1/3)
+2025-08-23 23:11:13 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952610511952167063 (attempt 1/3)
+2025-08-23 23:11:15 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952610511914483764 (attempt 1/3)
+2025-08-23 23:11:15 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952610511914483764 (attempt 1/3)
+2025-08-23 23:11:16 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952610510580719967 (attempt 1/3)
+2025-08-23 23:11:17 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952610510580719967 (attempt 1/3)
+2025-08-23 23:11:17 | INFO     | main.py:281           | Streaming complete: 1 search page(s); ~78 upsert attempts.
+2025-08-23 23:11:17 | INFO     | format_objects.py:280 | Raw dump: 24 conversation(s) → grok_data/2025-8-5to5_RAW.json
+2025-08-23 23:11:17 | INFO     | format_objects.py:442 | Transform complete: 24 conversation(s) → grok_data/2025-8-5to5.json
+2025-08-23 23:11:17 | INFO     | main.py:300           | Done! Run summary — elapsed=20.7s | conversations=10 | search_pages=1 | upserts≈78 | api_success=21 / attempts=21
+2025-08-23 23:11:17 | INFO     | cli.py:71             | ▶️	Block 2025-08-05 06:00:00 → 2025-08-05 12:00:00 | handle=grok | cap=10
+2025-08-23 23:11:17 | INFO     | format_objects.py:29  | Built query:	from:grok filter:replies -filter:retweets -filter:quote -filter:self_threads since:2025-08-05_06:00:00_UTC until:2025-08-05_12:00:00_UTC
+2025-08-23 23:11:18 | INFO     | main.py:74            | ✅	Success: /twitter/tweet/advanced_search (attempt 1/3)
+2025-08-23 23:11:19 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952701114924900383 (attempt 1/3)
+2025-08-23 23:11:20 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952701114924900383 (attempt 1/3)
+2025-08-23 23:11:21 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952701114715189684 (attempt 1/3)
+2025-08-23 23:11:26 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952701114715189684 (attempt 1/3)
+2025-08-23 23:11:27 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952701114123755749 (attempt 1/3)
+2025-08-23 23:11:27 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952701114123755749 (attempt 1/3)
+2025-08-23 23:11:32 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952701113746280953 (attempt 1/3)
+2025-08-23 23:11:33 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952701113746280953 (attempt 1/3)
+2025-08-23 23:11:34 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952701113691742418 (attempt 1/3)
+2025-08-23 23:11:35 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952701113691742418 (attempt 1/3)
+2025-08-23 23:11:36 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952701113658220994 (attempt 1/3)
+2025-08-23 23:11:37 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952701113658220994 (attempt 1/3)
+2025-08-23 23:11:39 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952701113343565950 (attempt 1/3)
+2025-08-23 23:11:40 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952701113343565950 (attempt 1/3)
+2025-08-23 23:11:43 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952701111892398378 (attempt 1/3)
+2025-08-23 23:11:43 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952701111892398378 (attempt 1/3)
+2025-08-23 23:11:44 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952701111745540157 (attempt 1/3)
+2025-08-23 23:11:45 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952701111745540157 (attempt 1/3)
+2025-08-23 23:11:46 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952701111120658568 (attempt 1/3)
+2025-08-23 23:11:47 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952701111120658568 (attempt 1/3)
+2025-08-23 23:11:47 | INFO     | main.py:281           | Streaming complete: 1 search page(s); ~147 upsert attempts.
+2025-08-23 23:11:47 | INFO     | format_objects.py:280 | Raw dump: 47 conversation(s) → grok_data/2025-8-5to5_RAW.json
+2025-08-23 23:11:47 | INFO     | format_objects.py:442 | Transform complete: 47 conversation(s) → grok_data/2025-8-5to5.json
+2025-08-23 23:11:47 | INFO     | main.py:300           | Done! Run summary — elapsed=29.8s | conversations=10 | search_pages=1 | upserts≈147 | api_success=42 / attempts=42
+2025-08-23 23:11:47 | INFO     | cli.py:71             | ▶️	Block 2025-08-05 12:00:00 → 2025-08-05 18:00:00 | handle=grok | cap=10
+2025-08-23 23:11:47 | INFO     | format_objects.py:29  | Built query:	from:grok filter:replies -filter:retweets -filter:quote -filter:self_threads since:2025-08-05_12:00:00_UTC until:2025-08-05_18:00:00_UTC
+2025-08-23 23:11:48 | INFO     | main.py:74            | ✅	Success: /twitter/tweet/advanced_search (attempt 1/3)
+2025-08-23 23:11:49 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952791712109347098 (attempt 1/3)
+2025-08-23 23:11:50 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952791712109347098 (attempt 1/3)
+2025-08-23 23:11:51 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952791708271624250 (attempt 1/3)
+2025-08-23 23:11:52 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952791708271624250 (attempt 1/3)
+2025-08-23 23:11:53 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952791707369783469 (attempt 1/3)
+2025-08-23 23:11:53 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952791707369783469 (attempt 1/3)
+2025-08-23 23:11:54 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952791706040189388 (attempt 1/3)
+2025-08-23 23:11:55 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952791706040189388 (attempt 1/3)
+2025-08-23 23:11:56 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952791700910522765 (attempt 1/3)
+2025-08-23 23:11:57 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952791700910522765 (attempt 1/3)
+2025-08-23 23:12:00 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952791700625342663 (attempt 1/3)
+2025-08-23 23:12:01 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952791700625342663 (attempt 1/3)
+2025-08-23 23:12:03 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952791700323352682 (attempt 1/3)
+2025-08-23 23:12:04 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952791700323352682 (attempt 1/3)
+2025-08-23 23:12:05 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952791699677421582 (attempt 1/3)
+2025-08-23 23:12:05 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952791699677421582 (attempt 1/3)
+2025-08-23 23:12:11 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952791699568439798 (attempt 1/3)
+2025-08-23 23:12:12 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952791699568439798 (attempt 1/3)
+2025-08-23 23:12:13 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952791697265762593 (attempt 1/3)
+2025-08-23 23:12:14 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952791697265762593 (attempt 1/3)
+2025-08-23 23:12:14 | INFO     | main.py:281           | Streaming complete: 1 search page(s); ~136 upsert attempts.
+2025-08-23 23:12:14 | INFO     | format_objects.py:280 | Raw dump: 0 conversation(s) → grok_data/2025-8-5to5_RAW.json
+2025-08-23 23:12:14 | INFO     | format_objects.py:442 | Transform complete: 0 conversation(s) → grok_data/2025-8-5to5.json
+2025-08-23 23:12:14 | INFO     | main.py:300           | Done! Run summary — elapsed=26.5s | conversations=10 | search_pages=1 | upserts≈136 | api_success=63 / attempts=63
+2025-08-23 23:12:14 | INFO     | cli.py:71             | ▶️	Block 2025-08-05 18:00:00 → 2025-08-06 00:00:00 | handle=grok | cap=10
+2025-08-23 23:12:14 | INFO     | format_objects.py:29  | Built query:	from:grok filter:replies -filter:retweets -filter:quote -filter:self_threads since:2025-08-05_18:00:00_UTC until:2025-08-06_00:00:00_UTC
+2025-08-23 23:12:15 | INFO     | main.py:74            | ✅	Success: /twitter/tweet/advanced_search (attempt 1/3)
+2025-08-23 23:12:15 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952882309075816598 (attempt 1/3)
+2025-08-23 23:12:16 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952882309075816598 (attempt 1/3)
+2025-08-23 23:12:17 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952882307574186144 (attempt 1/3)
+2025-08-23 23:12:17 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952882307574186144 (attempt 1/3)
+2025-08-23 23:12:18 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952882306445918662 (attempt 1/3)
+2025-08-23 23:12:19 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952882306445918662 (attempt 1/3)
+2025-08-23 23:12:20 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952882305284059554 (attempt 1/3)
+2025-08-23 23:12:20 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952882305284059554 (attempt 1/3)
+2025-08-23 23:12:21 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952882303736381480 (attempt 1/3)
+2025-08-23 23:12:22 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952882303736381480 (attempt 1/3)
+2025-08-23 23:12:23 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952882303358910963 (attempt 1/3)
+2025-08-23 23:12:28 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952882303358910963 (attempt 1/3)
+2025-08-23 23:12:29 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952882302813651295 (attempt 1/3)
+2025-08-23 23:12:29 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952882302813651295 (attempt 1/3)
+2025-08-23 23:12:32 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952882301802823730 (attempt 1/3)
+2025-08-23 23:12:33 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952882301802823730 (attempt 1/3)
+2025-08-23 23:12:34 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952882301668626639 (attempt 1/3)
+2025-08-23 23:12:35 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952882301668626639 (attempt 1/3)
+2025-08-23 23:12:36 | INFO     | main.py:66            | ✅	Success: /twitter/tweet/thread_context for conversation 1952882297814041023 (attempt 1/3)
