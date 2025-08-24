@@ -24,7 +24,7 @@ settings:
   block_hours: 6
   number_conversations: 75
   build_final_json: true
-  out_path: grok_data/data.json
+  out_path: grok_data/${date.year}-${date.month}-${date.since_day}to${date.until_day}.json
 
 logging:
   run_name: crawl_week_2025-08-03_to_09

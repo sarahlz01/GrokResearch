@@ -445,6 +445,6 @@ def transform_conversations_to_threads(
 
 
 def export_json_from_db(out_path: str, grok_username: str = "grok"):
-    raw_path = "./grok_data/raw.json"
+    raw_path = out_path[0:out_path.find(".json")]+"_RAW"+".json"
     dump_conversations_raw(raw_path)
     return transform_conversations_to_threads(raw_path, out_path, grok_username=grok_username)

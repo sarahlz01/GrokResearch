@@ -28,7 +28,7 @@ class SettingsCfg:
     block_hours: int = 6
     number_conversations: int = 150
     build_final_json: bool = True
-    out_path: str = "grok_data/data.json"
+    out_path: str = 'grok_data/${date.year}-${date.month}.json'
 
 @dataclass
 class LoggingCfg:

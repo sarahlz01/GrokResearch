@@ -10,10 +10,9 @@ settings:
   include_quotes: false
   include_retweets: false
   block_hours: 24
-  number_conversations: 5
+  number_conversations: 1
   build_final_json: true
-  out_path: grok_data/data.json
-  MAX_REPLIES: 2
+  out_path: grok_data/${date.year}-${date.month}-${date.since_day}to${date.until_day}.json
 logging:
   run_name: crawl_test
   to_stdout: false
