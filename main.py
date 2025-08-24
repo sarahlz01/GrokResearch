@@ -45,6 +45,19 @@ def http_get(
         try:
             TOTAL_API_CALLS += 1
             resp = requests.get(url, headers=HEADERS, params=params, timeout=timeout)
+            # if the call was a advanced_search, sometimes it returns 0 tweets. if so, then recall it just in case
+            if (path == "/twitter/tweet/advanced_search"):
+                _, res_ = extract_items(resp.json())
+                if len(res_) == 0:
+                    p = params or {}
+                    if p.get("tweetId"):  
+                        logging.warning("⚠️\tReturned 0 tweets for %s conversation: %s, retrying (%d/%d). Backing off %.1f s... | VERBOSE : %s", path, p.get("tweetId"), attempt + 1, max_retries, backoff, resp.text,)
+                    else:  
+                        logging.warning("⚠️\tReturned 0 tweets for %s, retrying (%d/%d). Backing off %.1f s... | VERBOSE : %s", path, attempt + 1, max_retries, backoff, resp.text,)
+
+                    time.sleep(backoff)  #!! change to backoff when we have the paid version
+                    backoff *= 2
+                    continue
             if resp.status_code == 200:
                 try:
                     SUCCESSFUL_API_CALLS += 1
@@ -73,9 +86,7 @@ def http_get(
                         backoff
                     )  #!! change to backoff when we have the paid version
                     backoff *= 2
-                    continue
-
-            if resp.status_code in (429, 500, 502, 503, 504):
+            else:
                 logging.warning(
                     "⚠️\tHTTP %s on %s (%d/%d). Backing off %.1f s... | VERBOSE : %s",
                     resp.status_code,
@@ -87,10 +98,7 @@ def http_get(
                 )
                 time.sleep(backoff)  #!! change to backoff when we have the paid version
                 backoff *= 2
-                continue
-
-            logging.error("🚫\tHTTP %s on %s. No retry.", resp.status_code, path)
-            resp.raise_for_status()
+            #logging.error("🚫\tHTTP %s on %s. No retry.", resp.status_code, path)
 
         except requests.RequestException as e:
             logging.warning(
@@ -150,26 +158,13 @@ def search_grok_replies_stream(
 def fetch_thread_pages_stream(tweet_id: str):
     cursor = ""
     while True:
-        page = http_get(
-            "/twitter/tweet/thread_context",
-            {"tweetId": str(tweet_id), "cursor": cursor},
-        )
-        yield page  # same thing here, we YIELD pages (which is an array) so we get them one at a time
-        key, items = extract_items(page)  # <-- use your normalizer
-        if not page or not items:
-            break  # no page
-        last_reply = items[-1]  # we check the LAST page and see if it has replies
-
-        # if the last reply in the page response has 0 replies then we know there is no point in making another call even if cursor is not None
-        if not page.get("has_next_page") or (
-            last_reply.get("replyCount") is not None
-            and last_reply.get("replyCount") <= 0
-        ):
+        page = http_get("/twitter/tweet/thread_context", {"tweetId": str(tweet_id), "cursor": cursor})
+        yield page # same thing here, we YIELD pages
+        if not page.get("has_next_page"):
             break
         cursor = page.get("next_cursor") or ""
         if not cursor:
             break
-
 
 def extract_grok_reply_ids_from_pages(
     pages_or_single, conversation_id: str, grok_username: str = "grok"

@@ -10,6 +10,7 @@ from omegaconf import DictConfig
 from setuplog import setup_logging
 import logging
 from main import run_streaming 
+import time
 
 @dataclass
 class DateCfg:
@@ -56,6 +57,8 @@ def main(cfg: DictConfig):
         logging.error("🚫\tInvalid date, exiting program")
         raise SystemExit(1)
 
+    logging.info("▶️\tRun starting")
+    t0 = time.time()
     for day in range(start_day, end_day + 1):
         logging.info("\n\n")
         logging.info("⏱️\tScraping %d-%d day %d/%d", month, year, day, end_day)
@@ -84,6 +87,8 @@ def main(cfg: DictConfig):
                 raise
             except Exception as e:
                 logging.exception("🚫\tBlock failed: %s → %s.\tVerbose error: %s", since, until, e)
+    elapsed = time.time() - t0
+    logging.info("✅✅\tRUN COMPLETE, total time: %.1fs\t✅✅", elapsed)
 
 def api_ts(dt):
     return dt.astimezone(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
