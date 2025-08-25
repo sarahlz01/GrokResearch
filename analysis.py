@@ -170,10 +170,13 @@ if __name__=="__main__":
     filepath="grok_data/data.json"
     data=load_json_data(filepath)
     df=preprocess_data(data)
+    
     print("basic stats")
     basic_statistics(df)
     print("\n user distr")
     user_distribution(df)
+
+    df["clean_text"] = df["text"].apply(clean_tweet)
     print("\n=== Topic Analysis with BERTopic ===")
     topic_model, df = topic_analysis(df)
 
