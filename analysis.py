@@ -170,15 +170,19 @@ if __name__=="__main__":
     filepath="grok_data/data.json"
     data=load_json_data(filepath)
     df=preprocess_data(data)
-    
+
     print("basic stats")
     basic_statistics(df)
     print("\n user distr")
     user_distribution(df)
 
     df["clean_text"] = df["text"].apply(clean_tweet)
+    # Aggregating tweets per conversation 
+    df_conversations = df.groupby("conversationId")["clean_text"].apply(lambda texts: " ".join(texts)).reset_index()
+    df_conversations.rename(columns={"clean_text": "conversation_text"}, inplace=True)
+
     print("\n=== Topic Analysis with BERTopic ===")
-    topic_model, df = topic_analysis(df)
+    topic_model, df_topics = topic_analysis(df_conversations.rename(columns={"conversation_text":"text"}))
 
 
 
