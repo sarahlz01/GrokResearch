@@ -91,6 +91,25 @@ def topic_analysis(df: pd.DataFrame, embedding_model_name="paraphrase-multilingu
     # Extracting topic info
     topic_info = topic_model.get_topic_info()
     print("\nTop Topics:\n", topic_info.head(10))
+
+    #saving topic summary to CSV
+    topic_info.to_csv("topic_summary.csv", index=False, encoding="utf-8-sig")
+    print("topic summary has been saved ")
+
+    #saving representative examples for each topic
+    reps=[]
+    for topic_num in topic_info["Topic"].unique():
+        if topic_num ==-1: #skips outliers
+            continue 
+        docs=topic_model.get_representative_docs(topic_num)
+        reps.append({
+            "Topic":topic_num,
+            "keywords": ", ".join([word for word, _ in topic_model.get_topic(topic_num)[:10]]),
+            "Example_Doc": docs[0] if docs else ""
+        })
+    reps_df = pd.DataFrame(reps)
+    reps_df.to_csv("topic_examples.csv", index=False, encoding="utf-8-sig")
+    print(" Topic examples saved as topic_examples.csv")
     
     # Visualize top words per topic
     for topic_num in topic_info["Topic"].unique():
