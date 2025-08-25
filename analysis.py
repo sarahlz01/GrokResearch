@@ -7,6 +7,24 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import stopwordsiso as stopwords
 from sklearn.feature_extraction.text import CountVectorizer
+import re 
+
+
+def clean_tweet(text):
+    if not isinstance(text, str):
+        return ""
+    # removes URLs
+    text = re.sub(r"http\S+|www\S+|https\S+", "", text)
+    # removes  mentions (@user)
+    text = re.sub(r"@\w+", "", text)
+    # removes hashtags but keeps the text (#AI -> AI)
+    text = re.sub(r"#", "", text)
+    # removes digits and underscores
+    text = re.sub(r"\d+", "", text)
+    text = re.sub(r"_", " ", text)
+    # removes extra spaces
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
 
 
 sns.set(style="whitegrid") #for plots
