@@ -103,7 +103,7 @@ def topic_analysis(df: pd.DataFrame, embedding_model_name="paraphrase-multilingu
         multi_stopwords |= stopwords.stopwords(lang)
 
     #tweets specific stopwords
-    twitter_stopwords = {"grok", "Grok", "Elon","rt", "via", "amp", "https", "http"}
+    twitter_stopwords = {"grok", "Grok", "Elon","rt", "via", "amp", "https", "http","x'"}
     multi_stopwords |= twitter_stopwords  
 
     #creating vecotrizer
@@ -113,7 +113,12 @@ def topic_analysis(df: pd.DataFrame, embedding_model_name="paraphrase-multilingu
 
 
     # Initializing BERTopic
-    topic_model = BERTopic(embedding_model=embedding_model, min_topic_size=min_topic_size, language="multilingual") 
+    topic_model = BERTopic(
+        embedding_model=embedding_model,
+        vectorizer_model=vectorizer_model,
+        min_topic_size=min_topic_size,
+        language="multilingual"
+    ) 
 
     # Fit the model
     topics, probs = topic_model.fit_transform(texts)
