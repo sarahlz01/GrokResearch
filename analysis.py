@@ -5,6 +5,26 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+import stopwordsiso as stopwords
+from sklearn.feature_extraction.text import CountVectorizer
+import re 
+
+
+def clean_tweet(text):
+    if not isinstance(text, str):
+        return ""
+    # removes URLs
+    text = re.sub(r"http\S+|www\S+|https\S+", "", text)
+    # removes  mentions (@user)
+    text = re.sub(r"@\w+", "", text)
+    # removes hashtags but keeps the text (#AI -> AI)
+    text = re.sub(r"#", "", text)
+    # removes digits and underscores
+    text = re.sub(r"\d+", "", text)
+    text = re.sub(r"_", " ", text)
+    # removes extra spaces
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
 
 
 sns.set(style="whitegrid") #for plots
@@ -78,8 +98,27 @@ def topic_analysis(df: pd.DataFrame, embedding_model_name="paraphrase-multilingu
     # Loads multilingual embedding model
     embedding_model = SentenceTransformer(embedding_model_name)
 
+    multi_stopwords = set()  #builds multilingial stopword set
+    for lang in stopwords.langs():
+        multi_stopwords |= stopwords.stopwords(lang)
+
+    #tweets specific stopwords
+    twitter_stopwords = {"grok", "Grok", "Elon","rt", "via", "amp", "https", "http","x'"}
+    multi_stopwords |= twitter_stopwords  
+
+    #creating vecotrizer
+    vectorizer_model = CountVectorizer(
+        stop_words=list(multi_stopwords)
+    )
+
+
     # Initializing BERTopic
-    topic_model = BERTopic(embedding_model=embedding_model, min_topic_size=min_topic_size, language="multilingual") 
+    topic_model = BERTopic(
+        embedding_model=embedding_model,
+        vectorizer_model=vectorizer_model,
+        min_topic_size=min_topic_size,
+        language="multilingual"
+    ) 
 
     # Fit the model
     topics, probs = topic_model.fit_transform(texts)
@@ -90,8 +129,31 @@ def topic_analysis(df: pd.DataFrame, embedding_model_name="paraphrase-multilingu
     
     # Extracting topic info
     topic_info = topic_model.get_topic_info()
-    print("\nTop Topics:\n", topic_info.head(10))
+
+    #printing only the main info to check
+    topic_summary = topic_info[["Topic", "Count", "Name", "Representation"]]
+    print("\nTop Topics:\n", topic_summary.head(10).to_string(index=False))
     
+
+    #saving topic summary to CSV
+    topic_info.to_csv("topic_summary.csv", index=False, encoding="utf-8-sig")
+    print("topic summary has been saved ")
+
+    #saving representative examples for each topic
+    reps=[]
+    for topic_num in topic_info["Topic"].unique():
+        if topic_num ==-1: #skips outliers
+            continue 
+        docs=topic_model.get_representative_docs(topic_num)
+        reps.append({
+            "Topic":topic_num,
+            "keywords": ", ".join([word for word, _ in topic_model.get_topic(topic_num)[:10]]),
+            "Example_Doc": docs[0] if docs else ""
+        })
+    reps_df = pd.DataFrame(reps)
+    reps_df.to_csv("topic_examples.csv", index=False, encoding="utf-8-sig")
+    print(" Topic examples saved as topic_examples.csv")
+
     # Visualize top words per topic
     for topic_num in topic_info["Topic"].unique():
         if topic_num == -1:
@@ -113,12 +175,19 @@ if __name__=="__main__":
     filepath="grok_data/data.json"
     data=load_json_data(filepath)
     df=preprocess_data(data)
+
     print("basic stats")
     basic_statistics(df)
     print("\n user distr")
     user_distribution(df)
+
+    df["clean_text"] = df["text"].apply(clean_tweet)
+    # Aggregating tweets per conversation 
+    df_conversations = df.groupby("conversationId")["clean_text"].apply(lambda texts: " ".join(texts)).reset_index()
+    df_conversations.rename(columns={"clean_text": "conversation_text"}, inplace=True)
+
     print("\n=== Topic Analysis with BERTopic ===")
-    topic_model, df = topic_analysis(df)
+    topic_model, df_topics = topic_analysis(df_conversations.rename(columns={"conversation_text":"text"}))
 
 
 
