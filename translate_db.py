@@ -1,5 +1,6 @@
 import json
 from collections import defaultdict
+import os
 
 def build_threads_for_raw(raw_conversations):
     out = []
@@ -51,9 +52,10 @@ def threads_for_conversation(conv):
     # Optional: sort threads by (length desc, last createdAt), etc.
     return threads
 
-if __name__ == "__main__":
-    with open("pr.json", "r", encoding="utf-8") as f:
+def translate(raw_path, out_path):
+    with open(raw_path, "r", encoding="utf-8") as f:
         raw = json.load(f)
     out = build_threads_for_raw(raw)
-    with open("threads.json", "w", encoding="utf-8") as f:
+    os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
+    with open(out_path, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, indent=2)

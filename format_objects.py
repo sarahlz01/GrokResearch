@@ -6,6 +6,9 @@ from typing import Dict, List, Optional, Set
 import json, os
 from storage import init_db
 
+from translate_db import translate
+
+
 def format_time_utc(ts: str) -> str:
     ts = ts.strip()
     if "_UTC" in ts: return ts
@@ -95,7 +98,25 @@ def _items_from_thread_page(page: dict) -> List[dict]:
         return page.get("tweets") or []
     return []
 
-# ---------- NEW: Build conversations grouped by threads (reply IDs) ----------
+def export_json_from_db(out_path: str, grok_username: str ="grok"):
+    raw_path = out_path[0:out_path.find(".json")]+"_RAW"+".json"
+    translate(raw_path, out_path)
+
+
+# -----------------------------------------------------------------------------
+#
+#
+#                               OLD
+#
+#
+# -----------------------------------------------------------------------------
+
+# ---------- Build conversations grouped by threads (reply IDs) ----------
+
+def export_json_from_db_old(out_path: str, grok_username: str = "grok"):
+    raw_path = out_path[0:out_path.find(".json")]+"_RAW"+".json"
+    dump_conversations_raw(raw_path)
+    return transform_conversations_to_threads(raw_path, out_path, grok_username=grok_username)
 
 def build_conversation_objects_by_threads(
     conv_to_reply_pages: Dict[str, Dict[str, List[dict]]]
@@ -443,8 +464,3 @@ def transform_conversations_to_threads(
     return out_list
 
 
-
-def export_json_from_db(out_path: str, grok_username: str = "grok"):
-    raw_path = out_path[0:out_path.find(".json")]+"_RAW"+".json"
-    dump_conversations_raw(raw_path)
-    return transform_conversations_to_threads(raw_path, out_path, grok_username=grok_username)

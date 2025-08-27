@@ -1,0 +1,9 @@
+2025-08-27 15:12:12 | INFO     | cli.py:60             | ▶️	Run starting
+2025-08-27 15:12:12 | INFO     | cli.py:63             | 
+
+
+2025-08-27 15:12:12 | INFO     | cli.py:64             | ⏱️	Scraping 8-2025 day 6/6
+2025-08-27 15:12:12 | INFO     | cli.py:71             | ▶️	Block 2025-08-06 00:00:00 → 2025-08-06 06:00:00 | handle=grok | cap=10
+2025-08-27 15:12:12 | INFO     | format_objects.py:31  | Built query:	from:grok filter:replies -filter:retweets -filter:quote -filter:self_threads since:2025-08-06_00:00:00_UTC until:2025-08-06_06:00:00_UTC
+2025-08-27 15:12:13 | INFO     | main.py:298           | Done! Run summary — elapsed=0.9s | conversations=0 | search_pages=0 | upserts≈0 | api_success=0 / attempts=1
+2025-08-27 15:12:13 | ERROR    | cli.py:86             | ‼️	Interrupted; aborting remaining blocks.
