@@ -9,24 +9,39 @@ def translate(raw_path: str):
 
     for conversation in raw:
         conversationId = conversation.get("conversationId")
-        tweets = [t for t in (conversation.get("tweets",[]))]
-        if not conversationId or not tweets:
-                out_list.append({"conversationId": conversationId, "threads": [], "hasMissingParent": False, "hasMultipleThreads": False})
-                continue
+        tweets = conversation.get("tweets")[::-1]
+        first_tweet = tweets[-1]
         
-        thread_list = []
-        processed_ids = set()
-        for index, tweet in enumerate(tweets):
-            if tweet.get("replyCount") == 0:
-                thread_list.append(tweet)
-                break
-            else:
-                print('------------------------------------------------------')
-                thread_list = [t.get("text") for t in tweets[:index+1]] + determine_descendants(tweet, tweets[index:])
-                for t in thread_list:
-                    print("\n"+t+"\n")
-                print("\n\n\n")
-                # get the starting point for each thread
+        for i in range(len(tweets)):
+            if tweets[i].get("replyCount") == 0:
+                out_list.append(walk_backward(tweets[i:], tweets[-1].get("id")))
+    
+    #print
+    for thread in out_list:
+        for tweet in thread:
+            print("------------")
+            print(tweet)
+            print("-------\n\n")
+        
+
+def walk_backward(tweets, conversationId):
+    curr = tweets[0]
+    l = len(tweets)
+    index = 0
+    currReplyId = curr.get("inReplyToId")
+    res = [curr.get("text")]
+    while currReplyId != conversationId and index < l:
+        curr = tweets[index]
+        if (curr.get("id") == currReplyId):
+            res.append(curr.get("text"))
+            currReplyId = curr.get("inReplyToId")
+        
+        index += 1
+    res.append(tweets[-1].get("text"))
+    return res[::-1]
+
+
+        
 
 def determine_descendants(original_tweet, tweets):
     if len(tweets) == 1:
