@@ -53,6 +53,7 @@ def threads_for_conversation(conv):
     return threads
 
 def translate(raw_path, out_path):
+    os.makedirs(os.path.dirname(raw_path) or ".", exist_ok=True)
     with open(raw_path, "r", encoding="utf-8") as f:
         raw = json.load(f)
     out = build_threads_for_raw(raw)

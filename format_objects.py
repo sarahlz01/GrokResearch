@@ -100,6 +100,7 @@ def _items_from_thread_page(page: dict) -> List[dict]:
 
 def export_json_from_db(out_path: str, grok_username: str ="grok"):
     raw_path = out_path[0:out_path.find(".json")]+"_RAW"+".json"
+    dump_conversations_raw(raw_path)
     translate(raw_path, out_path)
 
 

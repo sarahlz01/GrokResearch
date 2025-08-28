@@ -16,7 +16,7 @@ from typing import Dict, List, Optional, Tuple, Set
 import requests
 from dotenv import load_dotenv
 
-from format_objects import build_query, export_json_from_db, save_fields
+from format_objects import build_query, export_json_from_db
 from storage import init_db, upsert_tweets
 
 # load env variables
@@ -156,13 +156,56 @@ def search_grok_replies_stream(
 
 
 # we only do ONE call because the pagination system is broken
-def fetch_thread_pages_stream(tweet_id: str):
-    cursor = ""
-    page = http_get(
-        "/twitter/tweet/thread_context",
-        {"tweetId": str(tweet_id), "cursor": cursor},
-    )
-    yield page  # same thing here, we YIELD pages (which is an array) so we get them one at a time
+def fetch_thread_pages_stream(tweet_id: str, tries: int = 2):
+    """
+    Call /twitter/tweet/thread_context up to (1 + tries) times.
+    After each call, if items are sorted oldest→newest, update tweet_id to the FIRST tweet's id
+    to climb further up the context. Stop early when we detect the root or no new items arrive.
+    Yields a single synthesized page with merged unique tweets.
+    """
+    seen_ids = set()
+    merged = []
+    found_root = False
+    attempts = 0
+    backoff = 1.5
+
+    current_id = str(tweet_id)
+
+    while attempts < (1 + (tries or 0)):
+        attempts += 1
+
+        page = http_get(
+            "/twitter/tweet/thread_context",
+            {"tweetId": current_id, "cursor": ""},  # cursor ignored; endpoint is flaky
+        )
+
+        _, items = extract_items(page)  # expects oldest→newest already
+        items = items or []
+
+        new_added = 0
+        for t in items:
+            if not isinstance(t, dict):
+                continue
+            tid = t.get("id")
+            if not tid or tid in seen_ids:
+                continue
+            seen_ids.add(tid)
+            merged.append(t)
+            new_added += 1
+            # Full-context stop condition
+            if (t.get("conversationId") and t.get("id") == t.get("conversationId")) or \
+               (t.get("inReplyToId") in (None, "")):
+                found_root = True
+
+        if found_root or new_added == 0:
+            break
+
+        # Walk further up by switching to the oldest tweet returned this round
+        # (items are oldest→newest, so items[0] is the oldest)
+        if items and isinstance(items[0], dict) and items[0].get("id"):
+            current_id = str(items[0]["id"])
+    # Yield a single normalized "page" so downstream code stays unchanged
+    yield {"tweets": merged}
 
 def extract_grok_reply_ids_from_pages(
     pages_or_single, conversation_id: str, grok_username: str = "grok"
@@ -255,7 +298,7 @@ def run_streaming(
                         _, page_items = extract_items(page)
                         if db_conn and page_items:
                             normalized = [
-                                save_fields(t)
+                                t
                                 for t in page_items
                                 if isinstance(t, dict)
                             ]
