@@ -167,11 +167,9 @@ def fetch_thread_pages_stream(tweet_id: str, tries: int = 2):
     merged = []
     found_root = False
     attempts = 0
-    backoff = 1.5
-
     current_id = str(tweet_id)
 
-    while attempts < (1 + (tries or 0)):
+    while True:
         attempts += 1
 
         page = http_get(
@@ -187,14 +185,16 @@ def fetch_thread_pages_stream(tweet_id: str, tries: int = 2):
             if not isinstance(t, dict):
                 continue
             tid = t.get("id")
-            if not tid or tid in seen_ids:
+            if not tid:
+                continue
+            tid = str(tid)
+            if tid in seen_ids:
                 continue
             seen_ids.add(tid)
             merged.append(t)
             new_added += 1
             # Full-context stop condition
-            if (t.get("conversationId") and t.get("id") == t.get("conversationId")) or \
-               (t.get("inReplyToId") in (None, "")):
+            if (t.get("conversationId") and t.get("id") == t.get("conversationId")) or (t.get("inReplyToId") in (None, "")):
                 found_root = True
 
         if found_root or new_added == 0:
@@ -203,7 +203,14 @@ def fetch_thread_pages_stream(tweet_id: str, tries: int = 2):
         # Walk further up by switching to the oldest tweet returned this round
         # (items are oldest→newest, so items[0] is the oldest)
         if items and isinstance(items[0], dict) and items[0].get("id"):
-            current_id = str(items[0]["id"])
+            oldest_id = str(items[0]["id"])
+            # If we didn't move upward, bail to avoid a loop
+            if oldest_id == current_id:
+                break
+            current_id = oldest_id
+        else:
+            break
+            
     # Yield a single normalized "page" so downstream code stays unchanged
     yield {"tweets": merged}
 

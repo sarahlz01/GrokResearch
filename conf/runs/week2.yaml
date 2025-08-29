@@ -11,9 +11,9 @@ hydra:
 
 date:
   year: 2025
-  month: 8
-  since_day: 6
-  until_day: 6
+  month: 7
+  since_day: 20
+  until_day: 26
 
 settings:
   handle: grok
@@ -21,11 +21,11 @@ settings:
   include_self_threads: false
   include_quotes: false
   include_retweets: false
-  block_hours: 12
-  number_conversations: 5
-  build_final_json: true
+  block_hours: 6
+  number_conversations: 75
+  build_final_json: false
   out_path: grok_data/${date.year}-${date.month}-${date.since_day}to${date.until_day}.json
 
 logging:
-  run_name: crawl_test
+  run_name: crawl_week_2025-07_20to_26
   to_stdout: false
