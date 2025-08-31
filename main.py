@@ -169,7 +169,7 @@ def fetch_thread_pages_stream(tweet_id: str, tries: int = 2):
     attempts = 0
     current_id = str(tweet_id)
 
-    while True:
+    while attempts < 3:
         attempts += 1
 
         page = http_get(
