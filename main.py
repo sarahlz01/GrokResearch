@@ -33,7 +33,7 @@ SUCCESSFUL_API_CALLS = 0
 
 # Makes ONE http request
 def http_get(
-    path: str, params: Optional[dict] = None, max_retries: int = 3, timeout: int = 30
+    path: str, params: Optional[dict] = None, max_retries: int = 3, timeout: int = 30, conversation_id: str = None
 ) -> dict:
     global TOTAL_API_CALLS, SUCCESSFUL_API_CALLS
 
@@ -62,10 +62,11 @@ def http_get(
                 try:
                     SUCCESSFUL_API_CALLS += 1
                     p = params or {}
-                    if p.get("tweetId"):
+                    if p.get("tweetId"): # we are doing a thread_context() call, so we have conversation id and current id
                         logging.info(
-                            "✅\tSuccess: %s for conversation %s (attempt %d/%d)",
+                            "✅\tSuccess: %s for conversationId: %s\tcalling on id: %s (attempt %d/%d)",
                             path,
+                            conversation_id,
                             p.get("tweetId"),
                             attempt + 1,
                             max_retries,
@@ -155,8 +156,7 @@ def search_grok_replies_stream(
             break
 
 
-# we only do ONE call because the pagination system is broken
-def fetch_thread_pages_stream(tweet_id: str, tries: int = 2):
+def fetch_thread_pages_stream(tweet_id: str, conversation_id: str):
     """
     Call /twitter/tweet/thread_context up to (1 + tries) times.
     After each call, if items are sorted oldest→newest, update tweet_id to the FIRST tweet's id
@@ -175,6 +175,7 @@ def fetch_thread_pages_stream(tweet_id: str, tries: int = 2):
         page = http_get(
             "/twitter/tweet/thread_context",
             {"tweetId": current_id, "cursor": ""},  # cursor ignored; endpoint is flaky
+            conversation_id=conversation_id
         )
 
         _, items = extract_items(page)  # expects oldest→newest already
@@ -301,7 +302,7 @@ def run_streaming(
                         continue
                     seen[conv_id].add(rid)
 
-                    for page in fetch_thread_pages_stream(rid):
+                    for page in fetch_thread_pages_stream(tweet_id=rid, conversation_id=conv_id):
                         _, page_items = extract_items(page)
                         if db_conn and page_items:
                             normalized = [
