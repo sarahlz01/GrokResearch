@@ -1,6 +1,7 @@
 import json
 from collections import defaultdict
 import os
+import re
 
 def build_threads_for_raw(raw_conversations):
     out = []
@@ -50,13 +51,122 @@ def threads_for_conversation(conv):
         })
 
     # Optional: sort threads by (length desc, last createdAt), etc.
+    threads = prune_threads_without_grok(threads) # get rid of threads that dont have grok
+    threads = prune_single_tweet_threads(threads) # get rid of single length threads
+    threads = ensure_root_in_threads(threads, conv) # add in the initial post to each thread
     return threads
+
+# --- add this helper anywhere above translate(...) ---
+def prune_threads_without_grok(threads):
+    """
+    Keep only threads that include at least one Grok reply.
+    We identify Grok tweets by author.userName == 'grok' (case-insensitive).
+    """
+    def is_grok_tweet(t):
+        author = t.get("author") or {}
+        return str(author.get("id")) == "1720665183188922368"
+
+    return [th for th in threads if any(is_grok_tweet(tw) for tw in th.get("tweets", []))]
+
+def ensure_root_in_threads(threads, conv):
+    """
+    Make sure each thread contains the root tweet (id == conversationId).
+    If it's already there, do nothing; otherwise, prepend it.
+    """
+    conv_id = str(conv["conversationId"])
+    id_map = {str(t["id"]): t for t in conv["tweets"]}
+
+    root_tweet = id_map.get(conv_id)
+    if not root_tweet:
+        return threads  # nothing to do if root isn't in the conversation
+
+    for th in threads:
+        ids = {str(tw["id"]) for tw in th.get("tweets", [])}
+        if conv_id not in ids:
+            th["tweets"].insert(0, root_tweet)
+    return threads
+
+def prune_single_tweet_threads(threads):
+    """Remove threads that only contain a single tweet."""
+    return [th for th in threads if len(th.get("tweets", [])) > 1]
 
 def translate(raw_path, out_path):
     os.makedirs(os.path.dirname(raw_path) or ".", exist_ok=True)
     with open(raw_path, "r", encoding="utf-8") as f:
         raw = json.load(f)
+    
+    # build the output with all metadata
     out = build_threads_for_raw(raw)
     os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, indent=2)
+    
+    # build the cleaned output    
+    cleaned = _clean_conversations_minimal(out)
+    cleaned_path = out_path.replace(".json", "_CLEANED.json")
+    with open(cleaned_path, "w", encoding="utf-8") as f2:
+        json.dump(cleaned, f2, ensure_ascii=False, indent=2)
+        
+
+
+# create the cleaned versions of the output for analysis
+import re
+GROK_USER_ID = "1720665183188922368"
+
+# strip any leading block of @mentions, then replace any remaining mentions with [USER]
+_LEADING_MENTIONS = re.compile(r'^(?:\s*@\w+\b[^\S\r\n]*)+')
+_ANY_GROK_WORD = re.compile(r'\bgrok\b', re.IGNORECASE)
+_ANY_MENTION = re.compile(r'@\w+')
+
+def _clean_text(text: str) -> str:
+    if not isinstance(text, str):
+        return ""
+    s = _LEADING_MENTIONS.sub("", text).lstrip()
+
+    # Replace @grok (any case) → [ASSISTANT]
+    s = re.sub(r'@grok\b', "[ASSISTANT]", s, flags=re.IGNORECASE)
+
+    # Replace all other mentions → [USER]
+    s = _ANY_MENTION.sub("[USER]", s)
+
+    # Replace plain word "grok" (not mention) → [ASSISTANT]
+    s = _ANY_GROK_WORD.sub("[ASSISTANT]", s)
+
+    return s.strip()
+
+def _author_name_from_author(author: dict) -> str:
+    # "ASSISTANT" if grok, otherwise "USER"
+    try:
+        return "ASSISTANT" if str((author or {}).get("id")) == GROK_USER_ID else "USER"
+    except Exception:
+        return "USER"
+
+def _clean_tweet_minimal(t: dict) -> dict:
+    return {
+        "text": _clean_text(t.get("text", "")),
+        "authorName": _author_name_from_author(t.get("author")),
+    }
+
+def _clean_conversations_minimal(out_obj: list) -> list:
+    """
+    Takes your existing output shape:
+      [{"conversationId": "...", "threads": [{"threadId": "...", "has_missing_parent": bool?, "tweets": [...]}, ...]}, ...]
+    and returns the same shape but each tweet only has {text, authorName}.
+    """
+    cleaned = []
+    for conv in out_obj or []:
+        threads = []
+        for th in (conv.get("threads") or []):
+            # keep threadId and flags, but minimize tweets
+            new_th = {
+                "threadId": th.get("threadId"),
+                # keep existing flags/metadata if present
+                **({k: v for k, v in th.items() if k not in ("threadId", "tweets")}),
+                "tweets": [_clean_tweet_minimal(t) for t in (th.get("tweets") or [])],
+            }
+            threads.append(new_th)
+        cleaned.append({
+            "conversationId": conv.get("conversationId"),
+            "threads": threads
+        })
+    return cleaned
