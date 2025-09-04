@@ -1,0 +1,29 @@
+2025-09-03 17:32:55 | INFO     | cli.py:60             | ▶️	Run starting
+2025-09-03 17:32:55 | INFO     | cli.py:63             | 
+
+
+2025-09-03 17:32:55 | INFO     | cli.py:64             | ⏱️	Scraping 8-2025 day 6/6
+2025-09-03 17:32:55 | INFO     | cli.py:71             | ▶️	Block 2025-08-06 00:00:00 → 2025-08-06 12:00:00 | handle=grok | cap=5
+2025-09-03 17:32:55 | INFO     | format_objects.py:32  | Built query:	from:grok filter:replies -filter:retweets -filter:quote -filter:self_threads since:2025-08-06_00:00:00_UTC until:2025-08-06_12:00:00_UTC
+2025-09-03 17:32:56 | INFO     | main.py:75            | ✅	Success: /twitter/tweet/advanced_search (attempt 1/3)
+2025-09-03 17:32:58 | INFO     | main.py:75            | ✅	Success: /twitter/tweet/thread_context (attempt 1/3)
+2025-09-03 17:32:59 | INFO     | main.py:75            | ✅	Success: /twitter/tweet/thread_context (attempt 1/3)
+2025-09-03 17:33:00 | INFO     | main.py:75            | ✅	Success: /twitter/tweet/thread_context (attempt 1/3)
+2025-09-03 17:33:01 | INFO     | main.py:75            | ✅	Success: /twitter/tweet/thread_context (attempt 1/3)
+2025-09-03 17:33:03 | INFO     | main.py:75            | ✅	Success: /twitter/tweet/thread_context (attempt 1/3)
+2025-09-03 17:33:03 | INFO     | main.py:365           | Streaming complete: 1 search page(s); ~65 upsert attempts.
+2025-09-03 17:33:03 | INFO     | format_objects.py:302 | Raw dump: 5 conversation(s) → grok_data/2025-8-6to6_RAW.json
+2025-09-03 17:33:03 | INFO     | main.py:384           | Done! Run summary — elapsed=7.7s | conversations=5 | search_pages=1 | upserts≈65 | api_success=6 / attempts=6
+2025-09-03 17:33:03 | INFO     | cli.py:71             | ▶️	Block 2025-08-06 12:00:00 → 2025-08-07 00:00:00 | handle=grok | cap=5
+2025-09-03 17:33:03 | INFO     | format_objects.py:32  | Built query:	from:grok filter:replies -filter:retweets -filter:quote -filter:self_threads since:2025-08-06_12:00:00_UTC until:2025-08-07_00:00:00_UTC
+2025-09-03 17:33:04 | INFO     | main.py:75            | ✅	Success: /twitter/tweet/advanced_search (attempt 1/3)
+2025-09-03 17:33:05 | INFO     | main.py:75            | ✅	Success: /twitter/tweet/thread_context (attempt 1/3)
+2025-09-03 17:33:06 | INFO     | main.py:75            | ✅	Success: /twitter/tweet/thread_context (attempt 1/3)
+2025-09-03 17:33:07 | INFO     | main.py:75            | ✅	Success: /twitter/tweet/thread_context (attempt 1/3)
+2025-09-03 17:33:09 | INFO     | main.py:75            | ✅	Success: /twitter/tweet/thread_context (attempt 1/3)
+2025-09-03 17:33:11 | INFO     | main.py:75            | ✅	Success: /twitter/tweet/thread_context (attempt 1/3)
+2025-09-03 17:33:12 | INFO     | main.py:75            | ✅	Success: /twitter/tweet/thread_context (attempt 1/3)
+2025-09-03 17:33:12 | INFO     | main.py:365           | Streaming complete: 1 search page(s); ~99 upsert attempts.
+2025-09-03 17:33:12 | INFO     | format_objects.py:302 | Raw dump: 10 conversation(s) → grok_data/2025-8-6to6_RAW.json
+2025-09-03 17:33:12 | INFO     | main.py:384           | Done! Run summary — elapsed=8.5s | conversations=5 | search_pages=1 | upserts≈99 | api_success=13 / attempts=13
+2025-09-03 17:33:12 | INFO     | cli.py:91             | ✅✅	RUN COMPLETE, total time: 16.2s	✅✅

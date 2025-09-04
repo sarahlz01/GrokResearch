@@ -62,12 +62,12 @@ def http_get(
                 try:
                     SUCCESSFUL_API_CALLS += 1
                     p = params or {}
-                    if p.get("tweetId"): # we are doing a thread_context() call, so we have conversation id and current id
+                    if p.get("tweet_ids"): # we are doing a tweets call, so we have conversation id and current id
                         logging.info(
                             "✅\tSuccess: %s for conversationId: %s\tcalling on id: %s (attempt %d/%d)",
                             path,
                             conversation_id,
-                            p.get("tweetId"),
+                            p.get("tweet_ids"),
                             attempt + 1,
                             max_retries,
                         )
@@ -156,7 +156,7 @@ def search_grok_replies_stream(
             break
 
 
-def fetch_thread_pages_stream(tweet_id: str, conversation_id: str):
+def fetch_thread_pages_stream_thread_context(tweet_id: str, conversation_id: str):
     """
     Call /twitter/tweet/thread_context up to (1 + tries) times.
     After each call, if items are sorted oldest→newest, update tweet_id to the FIRST tweet's id
@@ -214,6 +214,41 @@ def fetch_thread_pages_stream(tweet_id: str, conversation_id: str):
             
     # Yield a single normalized "page" so downstream code stays unchanged
     yield {"tweets": merged}
+    
+def fetch_thread_pages_stream(tweet_id: str, conversation_id: str):
+    """
+    Call /twitter/tweets and climb up from each tweet using inReplyToId
+    """
+    seen_ids = set()
+    res = []
+    current_id = str(tweet_id)
+
+    while current_id:
+        
+        if current_id in seen_ids: # avoid duplicates
+            break
+        seen_ids.add(current_id) 
+        
+        
+        page = http_get(
+            "/twitter/tweets",
+            {"tweet_ids": current_id},
+            conversation_id=conversation_id
+        )
+
+        _, items = extract_items(page)
+        if not items:
+            break
+        
+        pg = items[0]
+        if not pg.get('id') or not pg.get("type"):
+            break
+        
+        res.append(pg)
+        current_id = pg.get("inReplyToId")
+            
+    # Yield a single normalized "page" so downstream code stays unchanged
+    yield {"tweets": res}
 
 def extract_grok_reply_ids_from_pages(
     pages_or_single, conversation_id: str, grok_username: str = "grok"
@@ -380,8 +415,8 @@ if __name__ == "__main__":
     try:
         result = run_streaming(
             handle="grok",
-            since=since,
-            until=until,
+            since="2025-08-05 00:00:00",
+            until="2025-08-05 00:00:01",
             query_type="Latest",
             include_self_threads=False,  # Try without self threads first
             include_quotes=False,  # Try without quotes first
