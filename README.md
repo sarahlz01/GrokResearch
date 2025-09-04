@@ -4,7 +4,7 @@ To run this code, run the following commands
 
 - Set up virtual environment: `python3 -m venv venv`
 - Activate/start the virtual environment `source venv/bin/activate`
-- Install packages `pip install -r requirements.txt`
+- Install packages `pip install -r requirements.txt` or `pip install -r scrape_requirements.txt` if you don't have enough memory/storage
 - Create a `.env` and set up the environment variable as follows `TWITTERIO_API_KEY="key"` & `HYDRA_FULL_ERROR=1`
 - Run the program using one of the config files in conf/ `python3 cli.py --config-dir conf/runs --config-name <NAME OF YAML FILE WITHOUT .yaml>`
 

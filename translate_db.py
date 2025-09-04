@@ -102,7 +102,7 @@ def translate(raw_path, out_path):
         json.dump(out, f, ensure_ascii=False, indent=2)
     
     # build the cleaned output    
-    cleaned = _clean_conversations_minimal(out)
+    cleaned = clean_conversations_minimal(out)
     cleaned_path = out_path.replace(".json", "_CLEANED.json")
     with open(cleaned_path, "w", encoding="utf-8") as f2:
         json.dump(cleaned, f2, ensure_ascii=False, indent=2)
@@ -120,7 +120,7 @@ _ANY_GROK_WORD = re.compile(r'\bgrok\b', re.IGNORECASE)
 # URLs
 _URLS = re.compile(r'https?://\S+')
 
-def _author_name_from_author(author: dict, alias_map: dict) -> str:
+def author_name_from_author(author: dict, alias_map: dict) -> str:
     # Grok stays "ASSISTANT"
     if str((author or {}).get("id")) == GROK_USER_ID:
         return "<ASSISTANT>"
@@ -134,7 +134,7 @@ def _author_name_from_author(author: dict, alias_map: dict) -> str:
         alias_map[key] = f"<USER_{len(alias_map) + 1}>"
     return alias_map[key]
 
-def _clean_text_with_map(text: str, alias_map: dict) -> str:
+def clean_text_with_map(text: str, alias_map: dict) -> str:
     if not isinstance(text, str):
         return ""
 
@@ -164,12 +164,12 @@ def _clean_text_with_map(text: str, alias_map: dict) -> str:
     # Normalize whitespace
     return " ".join(s.split())
 
-def _clean_tweet_minimal(t: dict, alias_map: dict) -> dict:
+def clean_tweet_minimal(t: dict, alias_map: dict) -> dict:
     return {
-        "text": _clean_text_with_map(t.get("text", ""), alias_map),
-        "authorName": _author_name_from_author(t.get("author"), alias_map),
+        "text": clean_text_with_map(t.get("text", ""), alias_map),
+        "authorName": author_name_from_author(t.get("author"), alias_map),
     }
-def _clean_conversations_minimal(out_obj: list) -> list:
+def clean_conversations_minimal(out_obj: list) -> list:
     """
     Keeps {conversationId, threads[]} but trims each tweet to {text, authorName}.
     Mentions get stable per-conversation <USER_n> aliases.
@@ -182,7 +182,7 @@ def _clean_conversations_minimal(out_obj: list) -> list:
             new_th = {
                 "threadId": th.get("threadId"),
                 **({k: v for k, v in th.items() if k not in ("threadId", "tweets")}),
-                "tweets": [_clean_tweet_minimal(t, alias_map) for t in (th.get("tweets") or [])],
+                "tweets": [clean_tweet_minimal(t, alias_map) for t in (th.get("tweets") or [])],
             }
             threads.append(new_th)
         cleaned.append({

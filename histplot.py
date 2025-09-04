@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 thread_lengths = []
 
-with open("./grok_data/week2/lgst.json", "r") as f:
+with open("./grok_data/data.json", "r") as f: # !! replace with the output.json (NOT CLEANED)
     # stream through "threads.item.tweets" arrays
     for thread in ijson.items(f, "item.threads.item"):
         tweets = thread.get("tweets", [])
