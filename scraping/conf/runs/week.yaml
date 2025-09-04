@@ -1,0 +1,31 @@
+defaults:
+  - override hydra/job_logging: disabled
+  - override hydra/hydra_logging: disabled
+  - _self_
+
+hydra:
+  run:
+    dir: .
+  job:
+    chdir: false
+
+date:
+  year: 2025
+  month: 8
+  since_day: 3
+  until_day: 9
+
+settings:
+  handle: grok
+  query_type: Latest
+  include_self_threads: false
+  include_quotes: false
+  include_retweets: false
+  block_hours: 6
+  number_conversations: 75
+  build_final_json: true
+  out_path: grok_data/${date.year}-${date.month}-${date.since_day}to${date.until_day}.json
+
+logging:
+  run_name: crawl_week_2025-08-03_to_09
+  to_stdout: false
