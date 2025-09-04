@@ -1,14 +1,11 @@
 # set up logging
 import logging
-
 logging.getLogger(__name__)
 
 import os
 import sys
 
-assert (
-    sys.prefix != sys.base_prefix
-), "Make sure you have setup the venv and activated it by calling:\tsource venv/bin/activate.\nCheck README for more information"
+assert (sys.prefix != sys.base_prefix), "Make sure you have setup the venv and activated it by calling:\tsource venv/bin/activate.\nCheck README for more information"
 
 import time
 import logging
@@ -29,99 +26,53 @@ assert API_KEY, "Set TWITTERIO_API_KEY env var."
 # global variables for tracking purposes
 TOTAL_API_CALLS = 0
 SUCCESSFUL_API_CALLS = 0
-
-
+    
 # Makes ONE http request
-def http_get(
-    path: str, params: Optional[dict] = None, max_retries: int = 3, timeout: int = 30, conversation_id: str = None
-) -> dict:
+def http_get(path: str, params: Optional[dict] = None, conversation_id: str = None, max_retries: int = 3, timeout: int = 30) -> dict:
     global TOTAL_API_CALLS, SUCCESSFUL_API_CALLS
 
     url = f"{API_BASE}{path}"
     backoff = 5
-    last_exc = None
+    last_execution_error = None # track the last error
 
     for attempt in range(max_retries):
         try:
             TOTAL_API_CALLS += 1
             resp = requests.get(url, headers=HEADERS, params=params, timeout=timeout)
+            
             # if the call was a advanced_search, sometimes it returns 0 tweets. if so, then recall it just in case
             if (path == "/twitter/tweet/advanced_search"):
                 _, res_ = extract_items(resp.json())
                 if len(res_) == 0:
                     p = params or {}
-                    if p.get("tweetId"):  
-                        logging.warning("⚠️\tReturned 0 tweets for %s conversation: %s, retrying (%d/%d). Backing off %.1f s... | VERBOSE : %s", path, p.get("tweetId"), attempt + 1, max_retries, backoff, resp.text,)
-                    else:  
-                        logging.warning("⚠️\tReturned 0 tweets for %s, retrying (%d/%d). Backing off %.1f s... | VERBOSE : %s", path, attempt + 1, max_retries, backoff, resp.text,)
-
-                    time.sleep(backoff)  #!! change to backoff when we have the paid version
+                    logging.warning("⚠️\tReturned 0 tweets for %s conversation: %s, retrying (%d/%d). Backing off %.1f s... | VERBOSE : %s", path, p.get("tweetId"), attempt + 1, max_retries, backoff, resp.text)
+                    time.sleep(backoff)
                     backoff *= 2
                     continue
+                
+            # check response status code
             if resp.status_code == 200:
-                try:
-                    SUCCESSFUL_API_CALLS += 1
-                    p = params or {}
-                    if p.get("tweet_ids"): # we are doing a tweets call, so we have conversation id and current id
-                        logging.info(
-                            "✅\tSuccess: %s for conversationId: %s\tcalling on id: %s (attempt %d/%d)",
-                            path,
-                            conversation_id,
-                            p.get("tweet_ids"),
-                            attempt + 1,
-                            max_retries,
-                        )
-                    else:
-                        logging.info(
-                            "✅\tSuccess: %s (attempt %d/%d)",
-                            path,
-                            attempt + 1,
-                            max_retries,
-                        )
-
-                    return resp.json()
-                except ValueError as e:
-                    logging.error("🚫\tInvalid JSON from %s: %s", url, e)
-                    last_exc = e
-                    time.sleep(
-                        backoff
-                    )  #!! change to backoff when we have the paid version
-                    backoff *= 2
+                SUCCESSFUL_API_CALLS += 1
+                p = params or {}
+                if p.get("tweet_ids"): # if we are doing a /twitter/tweets call, we have conversation id and current id
+                    logging.info("✅\tSuccess: %s for conversationId: %s\tcalling on id: %s (attempt %d/%d)", path, conversation_id, p.get("tweet_ids"), attempt + 1, max_retries)
+                else: # if we are doing any other call (like advanced_search)
+                    logging.info("✅\tSuccess: %s (attempt %d/%d)", path, attempt + 1, max_retries)
+                return resp.json()
             else:
-                logging.warning(
-                    "⚠️\tHTTP %s on %s (%d/%d). Backing off %.1f s... | VERBOSE : %s",
-                    resp.status_code,
-                    path,
-                    attempt + 1,
-                    max_retries,
-                    backoff,
-                    resp.text,
-                )
-                time.sleep(backoff)  #!! change to backoff when we have the paid version
+                logging.warning("⚠️\tHTTP %s on %s (%d/%d). Backing off %.1f s... | VERBOSE : %s", resp.status_code, path, attempt + 1, max_retries, backoff, resp.text)
+                time.sleep(backoff)
                 backoff *= 2
-            #logging.error("🚫\tHTTP %s on %s. No retry.", resp.status_code, path)
-
-        except requests.RequestException as e:
-            logging.warning(
-                "⚠️\tRequest error on %s (%d/%d): %s. Backing off %.1f s...",
-                path,
-                attempt + 1,
-                max_retries,
-                e,
-                backoff,
-            )
-            last_exc = e
+        except Exception as e:
+            logging.warning("⚠️\tError on %s (%d/%d): %s. Backing off %.1f s...", path, attempt + 1, max_retries, e, backoff,)
+            last_execution_error = e
             time.sleep(backoff)
             backoff *= 2
             continue
 
-        except Exception as e:
-            logging.error("🚫\tUnexpected error on %s: %s", path, e)
-            last_exc = e
-
     logging.error("🚫\tFailed after %d attempts on %s", max_retries, path)
-    if last_exc:
-        raise last_exc
+    if last_execution_error:
+        raise last_execution_error
     else:
         raise RuntimeError(f"Failed to fetch {url}")
 
@@ -134,18 +85,8 @@ def extract_items(page: dict) -> Tuple[str, List[dict]]:
     return "tweets", []
 
 
-def search_grok_replies_stream(
-    handle="grok",
-    since=None,
-    until=None,
-    query_type="Latest",
-    include_self_threads=False,
-    include_quotes=False,
-    include_retweets=False,
-):
-    query = build_query(
-        handle, include_self_threads, include_quotes, include_retweets, since, until
-    )
+def search_grok_replies_stream(handle="grok", since=None, until=None, query_type="Latest", include_self_threads=False, include_quotes=False, include_retweets=False):
+    query = build_query(handle, include_self_threads, include_quotes, include_retweets, since, until)
     cursor = ""
     while True:
         params = {"query": query, "queryType": query_type, "cursor": cursor}
@@ -215,26 +156,21 @@ def fetch_thread_pages_stream_thread_context(tweet_id: str, conversation_id: str
     # Yield a single normalized "page" so downstream code stays unchanged
     yield {"tweets": merged}
     
-def fetch_thread_pages_stream(tweet_id: str, conversation_id: str):
+def fetch_thread_pages_stream_by_tweet_id(tweet_id: str, conversation_id: str):
     """
-    Call /twitter/tweets and climb up from each tweet using inReplyToId
+    Call /twitter/tweets and climb to each tweet using inReplyToId
     """
     seen_ids = set()
     res = []
     current_id = str(tweet_id)
 
-    while current_id:
-        
+    while current_id:   
         if current_id in seen_ids: # avoid duplicates
             break
         seen_ids.add(current_id) 
         
         
-        page = http_get(
-            "/twitter/tweets",
-            {"tweet_ids": current_id},
-            conversation_id=conversation_id
-        )
+        page = http_get("/twitter/tweets", {"tweet_ids": current_id}, conversation_id=conversation_id)
 
         _, items = extract_items(page)
         if not items:
@@ -250,9 +186,7 @@ def fetch_thread_pages_stream(tweet_id: str, conversation_id: str):
     # Yield a single normalized "page" so downstream code stays unchanged
     yield {"tweets": res}
 
-def extract_grok_reply_ids_from_pages(
-    pages_or_single, conversation_id: str, grok_username: str = "grok"
-) -> Set[str]:
+def extract_grok_reply_ids_from_pages(pages_or_single, conversation_id: str, grok_username: str = "grok") -> Set[str]:
     it = pages_or_single if isinstance(pages_or_single, list) else [pages_or_single]
     found: Set[str] = set()
     for page in it:
@@ -272,51 +206,28 @@ def extract_grok_reply_ids_from_pages(
     return found
 
 
-# -------- Streaming runner (unchanged logic, now passes grok_username to upserts) --------
-def run_streaming(
-    handle="grok",
-    since=None,
-    until=None,
-    query_type="Latest",
-    include_self_threads=False,
-    include_quotes=False,
-    include_retweets=False,
-    build_final_json: bool = False,
-    out_path: str = "grok_data/data.json",
-    number_conversations: int = 0,
-):
+# -------- Streaming runner --------
+def run_streaming(handle="grok", since=None, until=None, query_type="Latest", include_self_threads=False, include_quotes=False, include_retweets=False, build_final_json: bool = False, out_path: str = "grok_data/data.json", number_conversations: int = 0):
     global TOTAL_API_CALLS, SUCCESSFUL_API_CALLS
     db_conn = None
     stop = False
     t0 = time.time()
 
-    if init_db and upsert_tweets:
-        try:
-            db_conn = init_db()
-        except Exception as e:
-            logging.warning(
-                "⚠️\tSQLite storage not available (%s). Continuing without DB upserts.",
-                e,
-            )
-    else:
-        logging.warning("⚠️\tstorage.py not found; DB upserts disabled.")
+    try:
+        db_conn = init_db()
+    except Exception as e:
+        logging.error("🚫\tSQLite storage not available (%s). Aborting.", e)
+        raise # raise this error as there's no point in continuing the API calls if we can't store the results
 
     seen: Dict[str, Set[str]] = {}
     total_upserts = 0
     total_search_pages = 0
+    
     try:
-        for search_page in search_grok_replies_stream(
-            handle=handle,
-            since=since,
-            until=until,
-            query_type=query_type,
-            include_self_threads=include_self_threads,
-            include_quotes=include_quotes,
-            include_retweets=include_retweets,
-        ):
+        for search_page in search_grok_replies_stream(handle=handle, since=since, until=until, query_type=query_type, include_self_threads=include_self_threads, include_quotes=include_quotes, include_retweets=include_retweets):
             total_search_pages += 1
 
-            # Extract conv→reply ids from THIS search page only
+            # Extract the conversationId from the search page(s)
             conv_to_ids: Dict[str, Set] = {}
             _, items = extract_items(search_page)
             for t in items:
@@ -325,6 +236,7 @@ def run_streaming(
                 if conv and tid:
                     conv_to_ids.setdefault(conv, set()).add(tid)
 
+            # for a conversation(s), search through their replies and scrape them if they aren't duplicates
             for conv_id, reply_ids in conv_to_ids.items():
                 # logic to handle # conversations
                 if number_conversations <= 0 or len(seen) >= number_conversations:
@@ -332,34 +244,24 @@ def run_streaming(
                     break
                 seen.setdefault(conv_id, set())
 
+                # scrape through each reply in a given conversation
                 for rid in reply_ids:
                     if rid in seen[conv_id]:
                         continue
                     seen[conv_id].add(rid)
 
-                    for page in fetch_thread_pages_stream(tweet_id=rid, conversation_id=conv_id):
+                    # add/upsert each page result from the stream 
+                    for page in fetch_thread_pages_stream_by_tweet_id(tweet_id=rid, conversation_id=conv_id):
                         _, page_items = extract_items(page)
                         if db_conn and page_items:
-                            normalized = [
-                                t
-                                for t in page_items
-                                if isinstance(t, dict)
-                            ]
+                            normalized = [t for t in page_items if isinstance(t, dict)]
                             if normalized:
-                                total_upserts += upsert_tweets(
-                                    db_conn,
-                                    normalized,
-                                    batch_size=500,
-                                    grok_username=handle,
-                                )
-
-                        new_groks = extract_grok_reply_ids_from_pages(
-                            page, conversation_id=conv_id, grok_username=handle
-                        )
+                                total_upserts += upsert_tweets(db_conn, normalized, batch_size=500, grok_username=handle)
+                        
+                        new_groks = extract_grok_reply_ids_from_pages(page, conversation_id=conv_id, grok_username=handle)
                         if new_groks:
                             seen[conv_id].update(new_groks)
-
-            if stop:
+            if stop: # we met the conversation limit, stop early
                 break
 
         logging.info(
@@ -375,21 +277,13 @@ def run_streaming(
         logging.error("🚫\tDumping partial DB to JSON due to error: %s", e)
         try:
             export_json_from_db(out_path=out_path, grok_username=handle)
-            logging.info("💾\tPartial dump complete: %s", out_path)
+            logging.info("⚠️💾\tPartial dump complete: %s", out_path)
         except Exception as dump_err:
             logging.error("🚫\tFailed to dump partial JSON after error: %s", dump_err)
         raise  # re-raise so callers know the run failed (remove if you prefer to swallow)
     finally:
         elapsed = time.time() - t0
-        logging.info(
-            "Done! Run summary — elapsed=%.1fs | conversations=%d | search_pages=%d | upserts≈%d | api_success=%d / attempts=%d",
-            elapsed,
-            len(seen),
-            total_search_pages,
-            total_upserts,
-            SUCCESSFUL_API_CALLS,
-            TOTAL_API_CALLS,
-        )
+        logging.info("Done! Run summary — elapsed=%.1fs | conversations=%d | search_pages=%d | upserts≈%d | api_success=%d / attempts=%d", elapsed,len(seen), total_search_pages, total_upserts, SUCCESSFUL_API_CALLS, TOTAL_API_CALLS,)
 
 
 # -------- Direct execution (no hydra dependency) --------
@@ -397,9 +291,7 @@ if __name__ == "__main__":
     import logging
 
     # Set up logging
-    logging.basicConfig(
-        level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-    )
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
     # Try without time restrictions first to see if we can get any tweets
     since = None
