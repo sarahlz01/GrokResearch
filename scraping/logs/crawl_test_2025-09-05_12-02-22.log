@@ -1,0 +1,68 @@
+2025-09-05 12:02:22 | INFO     | main.py:58            | ▶️	Run starting
+2025-09-05 12:02:22 | INFO     | main.py:61            | 
+
+
+2025-09-05 12:02:22 | INFO     | main.py:62            | ⏱️	Scraping 8-2025 day 6/6
+2025-09-05 12:02:22 | INFO     | main.py:69            | ▶️	Block 2025-08-06 00:00:00 → 2025-08-06 12:00:00 | handle=grok | cap=5
+2025-09-05 12:02:22 | INFO     | clean_objects_while_scraping.py:22 | Built query:	from:grok filter:replies -filter:retweets -filter:quote -filter:self_threads since:2025-08-06_00:00:00_UTC until:2025-08-06_12:00:00_UTC
+2025-09-05 12:02:39 | WARNING  | http.py:69            | ⚠️ HTTP 404 on /twitter/tweet/advanced_search. Response: {"detail":"Not Found"}...
+2025-09-05 12:02:40 | WARNING  | http.py:69            | ⚠️ HTTP 404 on /twitter/tweet/advanced_search. Response: {"detail":"Not Found"}...
+2025-09-05 12:03:00 | WARNING  | http.py:69            | ⚠️ HTTP 404 on /twitter/tweet/advanced_search. Response: {"detail":"Not Found"}...
+2025-09-05 12:03:00 | ERROR    | scrape.py:207         | 🚫	Dumping partial DB to JSON due to error: HTTP 404 on https://api.twitterapi.io/twitter/tweet/advanced_searchee
+2025-09-05 12:03:00 | INFO     | convert_db_to_json.py:76 | Raw dump: 22 conversation(s) → grok_data/2025-8-6to6_RAW.json
+2025-09-05 12:03:00 | INFO     | scrape.py:210         | ⚠️💾	Partial dump complete: grok_data/2025-8-6to6.json
+2025-09-05 12:03:00 | INFO     | scrape.py:216         | Done! Run summary — elapsed=38.1s | conversations=0 | search_pages=0 | upserts≈0 | api_success=0 / attempts=3
+2025-09-05 12:03:00 | ERROR    | main.py:87            | 🚫	Block failed: 2025-08-06 00:00:00 → 2025-08-06 12:00:00.	Verbose error: HTTP 404 on https://api.twitterapi.io/twitter/tweet/advanced_searchee
+Traceback (most recent call last):
+  File "/Users/berat/Projects/GrokResearch/scraping/main.py", line 71, in main
+    run_streaming(
+    ~~~~~~~~~~~~~^
+        handle=cfg.settings.handle,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<8 lines>...
+        number_conversations=cfg.settings.number_conversations,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/berat/Projects/GrokResearch/scraping/network/scrape.py", line 157, in run_streaming
+    for search_page in search_grok_replies_stream(handle=handle, since=since, until=until, query_type=query_type, include_self_threads=include_self_threads, include_quotes=include_quotes, include_retweets=include_retweets):
+                       ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/berat/Projects/GrokResearch/scraping/network/scrape.py", line 25, in search_grok_replies_stream
+    page = http_get("/twitter/tweet/advanced_search", params)
+  File "/Users/berat/Projects/GrokResearch/scraping/venv/lib/python3.13/site-packages/backoff/_sync.py", line 105, in retry
+    ret = target(*args, **kwargs)
+  File "/Users/berat/Projects/GrokResearch/scraping/network/http.py", line 73, in http_get
+    raise RuntimeError(f"HTTP {resp.status_code} on {url}")
+RuntimeError: HTTP 404 on https://api.twitterapi.io/twitter/tweet/advanced_searchee
+2025-09-05 12:03:00 | INFO     | main.py:69            | ▶️	Block 2025-08-06 12:00:00 → 2025-08-07 00:00:00 | handle=grok | cap=5
+2025-09-05 12:03:00 | INFO     | clean_objects_while_scraping.py:22 | Built query:	from:grok filter:replies -filter:retweets -filter:quote -filter:self_threads since:2025-08-06_12:00:00_UTC until:2025-08-07_00:00:00_UTC
+2025-09-05 12:03:05 | WARNING  | http.py:69            | ⚠️ HTTP 404 on /twitter/tweet/advanced_search. Response: {"detail":"Not Found"}...
+2025-09-05 12:03:06 | WARNING  | http.py:69            | ⚠️ HTTP 404 on /twitter/tweet/advanced_search. Response: {"detail":"Not Found"}...
+2025-09-05 12:03:09 | WARNING  | http.py:69            | ⚠️ HTTP 404 on /twitter/tweet/advanced_search. Response: {"detail":"Not Found"}...
+2025-09-05 12:03:09 | ERROR    | scrape.py:207         | 🚫	Dumping partial DB to JSON due to error: HTTP 404 on https://api.twitterapi.io/twitter/tweet/advanced_searchee
+2025-09-05 12:03:09 | INFO     | convert_db_to_json.py:76 | Raw dump: 22 conversation(s) → grok_data/2025-8-6to6_RAW.json
+2025-09-05 12:03:09 | INFO     | scrape.py:210         | ⚠️💾	Partial dump complete: grok_data/2025-8-6to6.json
+2025-09-05 12:03:09 | INFO     | scrape.py:216         | Done! Run summary — elapsed=8.7s | conversations=0 | search_pages=0 | upserts≈0 | api_success=0 / attempts=6
+2025-09-05 12:03:09 | ERROR    | main.py:87            | 🚫	Block failed: 2025-08-06 12:00:00 → 2025-08-07 00:00:00.	Verbose error: HTTP 404 on https://api.twitterapi.io/twitter/tweet/advanced_searchee
+Traceback (most recent call last):
+  File "/Users/berat/Projects/GrokResearch/scraping/main.py", line 71, in main
+    run_streaming(
+    ~~~~~~~~~~~~~^
+        handle=cfg.settings.handle,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<8 lines>...
+        number_conversations=cfg.settings.number_conversations,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/berat/Projects/GrokResearch/scraping/network/scrape.py", line 157, in run_streaming
+    for search_page in search_grok_replies_stream(handle=handle, since=since, until=until, query_type=query_type, include_self_threads=include_self_threads, include_quotes=include_quotes, include_retweets=include_retweets):
+                       ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/berat/Projects/GrokResearch/scraping/network/scrape.py", line 25, in search_grok_replies_stream
+    page = http_get("/twitter/tweet/advanced_search", params)
+  File "/Users/berat/Projects/GrokResearch/scraping/venv/lib/python3.13/site-packages/backoff/_sync.py", line 105, in retry
+    ret = target(*args, **kwargs)
+  File "/Users/berat/Projects/GrokResearch/scraping/network/http.py", line 73, in http_get
+    raise RuntimeError(f"HTTP {resp.status_code} on {url}")
+RuntimeError: HTTP 404 on https://api.twitterapi.io/twitter/tweet/advanced_searchee
+2025-09-05 12:03:09 | INFO     | main.py:89            | ✅✅	RUN COMPLETE, total time: 46.8s	✅✅
