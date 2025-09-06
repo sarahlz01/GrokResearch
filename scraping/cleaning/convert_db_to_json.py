@@ -109,7 +109,7 @@ def threads_for_conversation(conv):
         while True:
             chain_ids.append(cur["id"])
             parent_id = cur.get("inReplyToId")
-            if parent_id is None:
+            if parent_id is None or parent_id == '':
                 break
             parent = id_map.get(parent_id)
             if parent is None:
