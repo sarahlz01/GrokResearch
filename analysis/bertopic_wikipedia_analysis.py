@@ -92,3 +92,24 @@ def topic_analysis(df: pd.DataFrame):
     print("✅ All results saved in conversation_topics.csv")
 
     return topic_model, df_final
+
+if __name__ == "__main__":
+    filepath = "grok_data/output_CLEANED.json" 
+    data = load_json_data(filepath)
+    df = preprocess_data(data, max_conversations=2)  # limit to 2 conversations
+
+    # Clean text
+    df["clean_text"] = df["text"].apply(clean_tweet)
+
+    # Aggregate per conversation
+    df_conversations = (
+        df.groupby("conversationId")["clean_text"]
+          .apply(lambda texts: " ".join(texts))
+          .reset_index()
+    )
+    df_conversations.rename(columns={"clean_text": "conversation_text"}, inplace=True)
+
+    # Runs topic modeling
+    topic_model, df_topics = topic_analysis(
+        df_conversations.rename(columns={"conversation_text": "text"})
+    )
