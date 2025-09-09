@@ -52,3 +52,20 @@ def preprocess_data(data, max_conversations=2):
     df = pd.DataFrame(rows)
     df["replyLength"] = df["text"].str.len()
     return df
+
+def topic_analysis(df: pd.DataFrame):
+
+    texts = df["text"].dropna().tolist()
+
+    # Loads pretrained BERTopic model
+    topic_model = BERTopic.load("MaartenGr/BERTopic_Wikipedia")
+
+    # Transforms texts into topics
+    topics, probs = topic_model.transform(texts)
+
+    # Assigning topics back to dataframe
+    df["topic"] = topics
+    df["topic_prob"] = probs
+
+    # Extract topic info
+    topic_info = topic_model.get_topic_info()
