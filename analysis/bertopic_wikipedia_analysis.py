@@ -81,3 +81,8 @@ def topic_analysis(df: pd.DataFrame):
             "Example_Doc": docs[0] if docs else ""
         })
     reps_df = pd.DataFrame(reps)
+
+    # Merges into one dataframe
+    df_final = df.merge(
+        reps_df, how="left", left_on="topic", right_on="Topic"
+    ).drop(columns=["Topic"])
