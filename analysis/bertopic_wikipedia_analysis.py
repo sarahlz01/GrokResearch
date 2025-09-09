@@ -69,3 +69,15 @@ def topic_analysis(df: pd.DataFrame):
 
     # Extract topic info
     topic_info = topic_model.get_topic_info()
+
+    reps = []
+    for topic_num in topic_info["Topic"].unique():
+        if topic_num == -1:  # skip outliers
+            continue
+        docs = topic_model.get_representative_docs(topic_num)
+        reps.append({
+            "Topic": topic_num,
+            "keywords": ", ".join([word for word, _ in topic_model.get_topic(topic_num)[:10]]),
+            "Example_Doc": docs[0] if docs else ""
+        })
+    reps_df = pd.DataFrame(reps)
