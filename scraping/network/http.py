@@ -8,7 +8,6 @@ import time
 import logging
 from typing import Optional
 import requests
-import backoff
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -21,64 +20,55 @@ assert API_KEY, "Set TWITTERIO_API_KEY env var."
 TOTAL_API_CALLS = 0
 SUCCESSFUL_API_CALLS = 0
 
-def is_advanced_search(path: str) -> bool:
-    return path == "/twitter/tweet/advanced_search"
-
-
-def needs_retry_for_advanced_search(resp: requests.Response, path: str, params: dict) -> bool:
-    """Return True if advanced search returned 0 tweets."""
-    if not is_advanced_search(path):
-        return False
-    try:
-        _, items = extract_items(resp.json())
-        return len(items) == 0
-    except Exception:
-        return False
-
 
 def log_success(path: str, params: dict, conversation_id: str, attempt: int, max_retries: int):
-    if "tweet_ids" in params:
-        logging.info(
-            f"✅ Success: {path} for conversationId: {conversation_id} "
-            f"calling on id: {params['tweet_ids']} (attempt {attempt}/{max_retries})"
-        )
-    else:
-        logging.info(f"✅ Success: {path} (attempt {attempt}/{max_retries})")
-
-
-@backoff.on_exception(
-    backoff.expo,
-    (requests.RequestException, RuntimeError),
-    max_tries=3,
-    jitter=None,
-)
-def http_get(
-    path: str,
-    params: Optional[dict] = None,
-    conversation_id: str = None,
-    timeout: int = 30,
-) -> dict:
+    p = params or {}
+    if p.get("tweet_ids"): # if we are doing a /twitter/tweets call, we have conversation id and current id
+        logging.info("✅\tSuccess: %s for conversationId: %s\tcalling on id: %s (attempt %d/%d)", path, conversation_id, p.get("tweet_ids"), attempt, max_retries)
+    else: # if we are doing any other call (like advanced_search)
+        logging.info("✅\tSuccess: %s (attempt %d/%d)", path, attempt, max_retries)
+    
+# Makes ONE http request
+def http_get(path: str, params: Optional[dict] = None, conversation_id: str = None, max_retries: int = 3, timeout: int = 30) -> dict:
     global TOTAL_API_CALLS, SUCCESSFUL_API_CALLS
 
     url = f"{API_BASE}{path}"
-    TOTAL_API_CALLS += 1
+    backoff = 5
+    last_execution_error = None # track the last error
 
-    resp = requests.get(url, headers=HEADERS, params=params, timeout=timeout)
+    for attempt in range(1, max_retries+1):
+        try:
+            TOTAL_API_CALLS += 1
+            resp = requests.get(url, headers=HEADERS, params=params, timeout=timeout)
+            
+            # if the call was a advanced_search, sometimes it returns 0 tweets. if so, then recall it just in case
+            if (path == "/twitter/tweet/advanced_search"):
+                _, res_ = extract_items(resp.json())
+                if len(res_) == 0:
+                    p = params or {}
+                    logging.warning("⚠️\tReturned 0 tweets for %s conversation: %s, retrying (%d/%d). Backing off %.1f s... | VERBOSE : %s", path, p.get("tweetId"), attempt, max_retries, backoff, resp.text)
+                    time.sleep(backoff)
+                    backoff *= 2
+                    continue
+                
+            # check response status code
+            if resp.status_code == 200:
+                SUCCESSFUL_API_CALLS += 1
+                log_success(path=path, params=params, conversation_id=conversation_id, attempt=attempt, max_retries=max_retries)
+                return resp.json()
+            else:
+                logging.warning("⚠️\tHTTP %s on %s (%d/%d). Backing off %.1f s... | VERBOSE : %s", resp.status_code, path, attempt, max_retries, backoff, resp.text)
+                time.sleep(backoff)
+                backoff *= 2
+        except Exception as e:
+            logging.warning("🚫\tError on %s (%d/%d): %s. Backing off %.1f s...", path, attempt, max_retries, e, backoff,)
+            last_execution_error = e
+            time.sleep(backoff)
+            backoff *= 2
+            continue
 
-    if resp.status_code != 200:
-        logging.warning(
-            f"⚠️ HTTP {resp.status_code} on {path}. "
-            f"Response: {resp.text[:200]}..."  # truncate for readability
-        )
-        raise RuntimeError(f"HTTP {resp.status_code} on {url}")
-
-    if needs_retry_for_advanced_search(resp, path, params or {}):
-        logging.warning(
-            f"⚠️ Returned 0 tweets for {path} "
-            f"conversation: {(params or {}).get('tweetId')}. Retrying..."
-        )
-        raise RuntimeError("Empty advanced_search result")
-
-    SUCCESSFUL_API_CALLS += 1
-    log_success(path, params or {}, conversation_id, 1, 3)
-    return resp.json()
+    logging.error("🚨\tFailed after %d attempts on %s", max_retries, path)
+    if last_execution_error:
+        raise last_execution_error
+    else:
+        raise RuntimeError(f"Failed to fetch {url}")

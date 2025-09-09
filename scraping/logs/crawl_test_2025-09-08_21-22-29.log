@@ -1,0 +1,34 @@
+2025-09-08 21:22:29 | INFO     | main.py:58            | ▶️	Run starting
+2025-09-08 21:22:29 | INFO     | main.py:61            | 
+
+
+2025-09-08 21:22:29 | INFO     | main.py:62            | ⏱️	Scraping 8-2025 day 6/6
+2025-09-08 21:22:29 | INFO     | main.py:69            | ▶️	Block 2025-08-06 00:00:00 → 2025-08-07 00:00:00 | handle=grok | cap=1
+2025-09-08 21:22:29 | INFO     | clean_objects_while_scraping.py:22 | Built query:	from:grok filter:replies -filter:retweets -filter:quote -filter:self_threads since:2025-08-06_00:00:00_UTC until:2025-08-07_00:00:00_UTC
+2025-09-08 21:22:31 | INFO     | http.py:29            | ✅	Success: /twitter/tweet/advanced_search (attempt 1/3)
+2025-09-08 21:22:31 | WARNING  | http.py:60            | ⚠️	HTTP 429 on /twitter/tweets (1/3). Backing off 5.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-09-08 21:22:37 | INFO     | http.py:27            | ✅	Success: /twitter/tweets for conversationId: 1952966854747799673	calling on id: 1953244696907792400 (attempt 2/3)
+2025-09-08 21:22:37 | WARNING  | http.py:60            | ⚠️	HTTP 429 on /twitter/tweets (1/3). Backing off 5.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-09-08 21:22:43 | INFO     | http.py:27            | ✅	Success: /twitter/tweets for conversationId: 1952966854747799673	calling on id: 1953244394695315939 (attempt 2/3)
+2025-09-08 21:22:43 | WARNING  | http.py:60            | ⚠️	HTTP 429 on /twitter/tweets (1/3). Backing off 5.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-09-08 21:22:48 | INFO     | http.py:27            | ✅	Success: /twitter/tweets for conversationId: 1952966854747799673	calling on id: 1953232652791890097 (attempt 2/3)
+2025-09-08 21:22:48 | WARNING  | http.py:60            | ⚠️	HTTP 429 on /twitter/tweets (1/3). Backing off 5.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-09-08 21:22:54 | INFO     | http.py:27            | ✅	Success: /twitter/tweets for conversationId: 1952966854747799673	calling on id: 1953232481093550184 (attempt 2/3)
+2025-09-08 21:22:54 | WARNING  | http.py:60            | ⚠️	HTTP 429 on /twitter/tweets (1/3). Backing off 5.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-09-08 21:23:00 | INFO     | http.py:27            | ✅	Success: /twitter/tweets for conversationId: 1952966854747799673	calling on id: 1953231572343329149 (attempt 2/3)
+2025-09-08 21:23:00 | WARNING  | http.py:60            | ⚠️	HTTP 429 on /twitter/tweets (1/3). Backing off 5.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-09-08 21:23:06 | INFO     | http.py:27            | ✅	Success: /twitter/tweets for conversationId: 1952966854747799673	calling on id: 1953231279605821589 (attempt 2/3)
+2025-09-08 21:23:06 | WARNING  | http.py:60            | ⚠️	HTTP 429 on /twitter/tweets (1/3). Backing off 5.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-09-08 21:23:12 | INFO     | http.py:27            | ✅	Success: /twitter/tweets for conversationId: 1952966854747799673	calling on id: 1953231034155450808 (attempt 2/3)
+2025-09-08 21:23:12 | WARNING  | http.py:60            | ⚠️	HTTP 429 on /twitter/tweets (1/3). Backing off 5.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-09-08 21:23:18 | INFO     | http.py:27            | ✅	Success: /twitter/tweets for conversationId: 1952966854747799673	calling on id: 1953230815464141253 (attempt 2/3)
+2025-09-08 21:23:18 | WARNING  | http.py:60            | ⚠️	HTTP 429 on /twitter/tweets (1/3). Backing off 5.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-09-08 21:23:24 | INFO     | http.py:27            | ✅	Success: /twitter/tweets for conversationId: 1952966854747799673	calling on id: 1953048257183269144 (attempt 2/3)
+2025-09-08 21:23:24 | WARNING  | http.py:60            | ⚠️	HTTP 429 on /twitter/tweets (1/3). Backing off 5.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-09-08 21:23:29 | INFO     | http.py:27            | ✅	Success: /twitter/tweets for conversationId: 1952966854747799673	calling on id: 1953047887169855577 (attempt 2/3)
+2025-09-08 21:23:30 | WARNING  | http.py:60            | ⚠️	HTTP 429 on /twitter/tweets (1/3). Backing off 5.0 s... | VERBOSE : {"error":"Too Many Requests","message":"For free-tier users, the QPS limit is one request every 5 seconds."}
+2025-09-08 21:23:35 | INFO     | http.py:27            | ✅	Success: /twitter/tweets for conversationId: 1952966854747799673	calling on id: 1952966854747799673 (attempt 2/3)
+2025-09-08 21:23:35 | INFO     | scrape.py:197         | Streaming complete: 1 search page(s); ~11 upsert attempts.
+2025-09-08 21:23:35 | INFO     | convert_db_to_json.py:76 | Raw dump: 1 conversation(s) → grok_data/2025-8-6to6_RAW.json
+2025-09-08 21:23:35 | INFO     | scrape.py:216         | Done! Run summary — elapsed=66.0s | conversations=1 | search_pages=1 | upserts≈11 | api_success=12 / attempts=23
+2025-09-08 21:23:35 | INFO     | main.py:89            | ✅✅	RUN COMPLETE, total time: 66.0s	✅✅
