@@ -86,3 +86,9 @@ def topic_analysis(df: pd.DataFrame):
     df_final = df.merge(
         reps_df, how="left", left_on="topic", right_on="Topic"
     ).drop(columns=["Topic"])
+
+    # Saving everything to one CSV
+    df_final.to_csv("conversation_topics.csv", index=False, encoding="utf-8-sig")
+    print("✅ All results saved in conversation_topics.csv")
+
+    return topic_model, df_final
