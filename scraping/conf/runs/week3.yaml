@@ -27,5 +27,5 @@ settings:
   out_path: grok_data/${date.year}-${date.month}-${date.since_day}to${date.until_day}.json
 
 logging:
-  run_name: crawl_week_2025-07_20to_26
+  run_name: crawl_week_2025-07_13to_19
   to_stdout: false
