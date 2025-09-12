@@ -47,7 +47,7 @@ def http_get(path: str, params: Optional[dict] = None, conversation_id: str = No
                 if len(res_) == 0:
                     p = params or {}
                     logging.warning("⚠️\tReturned 0 tweets for %s conversation: %s, retrying (%d/%d). Backing off %.1f s... | VERBOSE : %s", path, p.get("tweetId"), attempt, max_retries, backoff, resp.text)
-                    time.sleep(0.5) # removed backoff
+                    time.sleep(5) # removed backoff
                     continue
                 
             # check response status code
