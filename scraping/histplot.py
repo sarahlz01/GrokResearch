@@ -2,13 +2,17 @@ import ijson
 import matplotlib.pyplot as plt
 
 thread_lengths = []
-
-with open("./grok_data/data.json", "r") as f: # !! replace with the output.json (NOT CLEANED)
+max_len = float("-inf")
+thid = 0
+with open("./grok_data/week3/output.json", "r") as f: # !! replace with the output.json (NOT CLEANED)
     # stream through "threads.item.tweets" arrays
     for thread in ijson.items(f, "item.threads.item"):
+        threadid = thread.get("threadId", 0)
         tweets = thread.get("tweets", [])
         thread_lengths.append(len(tweets))
-        
+        if len(tweets) >   max_len:
+            max_len = len(tweets)
+            thid = threadid
 if thread_lengths:
     avg_length = sum(thread_lengths) / len(thread_lengths)
     print(f"Average thread length: {avg_length:.2f} tweets")
@@ -16,7 +20,7 @@ else:
     print("No threads found.")
 
 # Plot histogram
-print(thread_lengths)
+print("max thread length\t" + str(max(thread_lengths)) +"\t With threadId: " + str(thid) )
 plt.figure(figsize=(8, 6))
 plt.hist(thread_lengths, bins=range(1, 50), edgecolor='black', alpha=0.7)
 plt.title("Distribution of Thread Lengths")
