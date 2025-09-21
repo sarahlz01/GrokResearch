@@ -33,6 +33,7 @@ class SettingsCfg:
 @dataclass
 class LoggingCfg:
     run_name: str = "run"
+    log_dir: str = "logs"
     to_stdout: bool = False
 
 @dataclass
@@ -43,7 +44,7 @@ class Config:
 
 @hydra.main(config_path="conf", config_name=None, version_base=None)
 def main(cfg: DictConfig):
-    setup_logging(run_name=cfg.logging.run_name, log_dir="logs", to_stdout=cfg.logging.to_stdout)
+    setup_logging(run_name=cfg.logging.run_name, log_dir=cfg.logging.log_dir, to_stdout=cfg.logging.to_stdout)
 
     # Parse + validate once
     year  = int(cfg.date.year)

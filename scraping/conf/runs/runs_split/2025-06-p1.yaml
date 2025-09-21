@@ -13,7 +13,7 @@ date:
   year: 2025
   month: 6
   since_day: 1
-  until_day: 30
+  until_day: 15
 
 settings:
   handle: grok
@@ -28,6 +28,6 @@ settings:
   grok_db_outpath: grok_data/grok_2025_06.sqlite3
 
 logging:
-  run_name: full
+  run_name: p1
   log_dir: logs/crawl_2025-06
   to_stdout: false

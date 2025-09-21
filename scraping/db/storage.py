@@ -150,3 +150,105 @@ def load_checkpoint(conn: sqlite3.Connection, key: str) -> Optional[str]:
     cur = conn.execute("SELECT value FROM checkpoints WHERE key=?", (key,))
     row = cur.fetchone()
     return row[0] if row else None
+
+
+from typing import Optional, Tuple
+import os
+import sqlite3
+
+def merge_databases(db1_path: str, db2_path: str, out_path: Optional[str] = None) -> Tuple[str, int, int]:
+    """
+    Merge two SQLite DBs (same schema as this module) into a new DB.
+    Output name defaults to MERGED_{basename(db1)}_{basename(db2)}.sqlite3 (without extensions).
+    Conflict policy:
+      - tweets: keep the row with the greater created_at_ts (ties prefer db2)
+      - checkpoints: db2 wins on key
+    Returns: (out_path, tweet_count, checkpoint_count)
+    """
+
+    def _base(p: str) -> str:
+        b = os.path.basename(p)
+        if b.endswith(".sqlite3"):
+            b = b[:-8]
+        else:
+            b = os.path.splitext(b)[0]
+        # sanitize path separators just in case
+        return b.replace(os.sep, "_")
+
+    if out_path is None:
+        out_name = f"MERGED_{_base(db1_path)}_{_base(db2_path)}.sqlite3"
+        out_dir = os.path.dirname(os.path.abspath(db1_path)) or "."
+        out_path = os.path.join(out_dir, out_name)
+
+    # Make sure both sources are on the current schema (your init_db handles migrations/PRAGMAs)
+    init_db(db1_path).close()
+    init_db(db2_path).close()
+
+    # Create/overwrite output DB
+    if os.path.exists(out_path):
+        os.remove(out_path)
+    out = init_db(out_path)
+
+    with out:
+        out.execute("PRAGMA foreign_keys = OFF;")
+        # Attach both sources using the exact paths you pass in (relative is OK)
+        out.execute("ATTACH ? AS a;", (db1_path,))
+        out.execute("ATTACH ? AS b;", (db2_path,))
+
+        # 1) Copy everything from DB1 first
+        out.execute("""
+            INSERT INTO tweets (id, conversation_id, author_username, created_at, created_at_ts,
+                                is_reply, is_grok_reply, parent_id, json)
+            SELECT id, conversation_id, author_username, created_at, created_at_ts,
+                   is_reply, is_grok_reply, parent_id, json
+            FROM a.tweets;
+        """)
+
+        # 2a) For rows that exist in both, update OUT.tweets from DB2 *only if DB2 is newer or equal*
+        # (No UPSERT; use a correlated subquery + WHERE EXISTS)
+        out.execute("""
+            UPDATE tweets
+               SET conversation_id = (SELECT conversation_id FROM b.tweets WHERE b.tweets.id = tweets.id),
+                   author_username = (SELECT author_username FROM b.tweets WHERE b.tweets.id = tweets.id),
+                   created_at      = (SELECT created_at      FROM b.tweets WHERE b.tweets.id = tweets.id),
+                   created_at_ts   = (SELECT created_at_ts   FROM b.tweets WHERE b.tweets.id = tweets.id),
+                   is_reply        = (SELECT is_reply        FROM b.tweets WHERE b.tweets.id = tweets.id),
+                   is_grok_reply   = (SELECT is_grok_reply   FROM b.tweets WHERE b.tweets.id = tweets.id),
+                   parent_id       = (SELECT parent_id       FROM b.tweets WHERE b.tweets.id = tweets.id),
+                   json            = (SELECT json            FROM b.tweets WHERE b.tweets.id = tweets.id)
+             WHERE EXISTS (
+                   SELECT 1
+                     FROM b.tweets AS bb
+                    WHERE bb.id = tweets.id
+                      AND IFNULL(bb.created_at_ts, 0) >= IFNULL(tweets.created_at_ts, 0)
+             );
+        """)
+
+        # 2b) Insert rows that are only in DB2 (or where DB1 was newer; ignore PK conflicts)
+        out.execute("""
+            INSERT OR IGNORE INTO tweets (id, conversation_id, author_username, created_at, created_at_ts,
+                                          is_reply, is_grok_reply, parent_id, json)
+            SELECT id, conversation_id, author_username, created_at, created_at_ts,
+                   is_reply, is_grok_reply, parent_id, json
+              FROM b.tweets;
+        """)
+
+        # 3) checkpoints: start with DB1, then let DB2 win (REPLACE)
+        out.execute("""
+            INSERT OR IGNORE INTO checkpoints(key, value)
+            SELECT key, value FROM a.checkpoints;
+        """)
+        out.execute("""
+            INSERT OR REPLACE INTO checkpoints(key, value)
+            SELECT key, value FROM b.checkpoints;
+        """)
+
+        out.execute("DETACH a;")
+        out.execute("DETACH b;")
+        out.execute("PRAGMA foreign_keys = ON;")
+
+    tweet_count = out.execute("SELECT COUNT(*) FROM tweets;").fetchone()[0]
+    cp_count = out.execute("SELECT COUNT(*) FROM checkpoints;").fetchone()[0]
+    out.close()
+    return out_path, tweet_count, cp_count
+
