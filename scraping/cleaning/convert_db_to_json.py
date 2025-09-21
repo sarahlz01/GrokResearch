@@ -9,9 +9,9 @@ from cleaning.clean_threads import clean_conversations_minimal
 from db.storage import init_db
 
 
-def export_json_from_db(out_path: str):
+def export_json_from_db(out_path: str, grok_db_outpath):
     raw_path = out_path[0:out_path.find(".json")]+"_RAW"+".json"
-    dump_conversations_raw(raw_path)
+    dump_conversations_raw(raw_path, grok_db_outpath)
     translate(raw_path, out_path)
 
 def translate(raw_path, out_path):
@@ -32,7 +32,7 @@ def translate(raw_path, out_path):
         json.dump(cleaned, f2, ensure_ascii=False, indent=2)
 
 # dump the db into json without organizing
-def dump_conversations_raw(out_path: str) -> List[dict]:
+def dump_conversations_raw(out_path: str, grok_db_outpath:str) -> List[dict]:
     """
     Dump *all* tweets from SQLite grouped by conversationId to a simple JSON:
       [
@@ -43,7 +43,7 @@ def dump_conversations_raw(out_path: str) -> List[dict]:
       - Every tweet row for a conversation is included exactly once
       - Tweets are sorted by (created_at_ts, id)
     """
-    conn = init_db()
+    conn = init_db(grok_db_outpath)
     rows = conn.execute(
         "SELECT conversation_id, id, created_at_ts, json FROM tweets "
         "WHERE conversation_id IS NOT NULL "

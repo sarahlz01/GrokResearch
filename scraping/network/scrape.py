@@ -138,13 +138,13 @@ def extract_grok_reply_ids_from_pages(pages_or_single, conversation_id: str, gro
 
 
 # -------- Streaming runner --------
-def run_streaming(handle="grok", since=None, until=None, query_type="Latest", include_self_threads=False, include_quotes=False, include_retweets=False, build_final_json: bool = False, out_path: str = "grok_data/data.json", number_conversations: int = 0):
+def run_streaming(handle="grok", since=None, until=None, query_type="Latest", include_self_threads=False, include_quotes=False, include_retweets=False, build_final_json: bool = False, out_path: str = "grok_data/data.json", number_conversations: int = 0, grok_db_outpath: str="grok_data/grok.sqlite3"):
     db_conn = None
     stop = False
     t0 = time.time()
 
     try:
-        db_conn = init_db()
+        db_conn = init_db(grok_db_outpath)
     except Exception as e:
         logging.error("🚫\tSQLite storage not available (%s). Aborting.", e)
         raise # raise this error as there's no point in continuing the API calls if we can't store the results
@@ -199,18 +199,13 @@ def run_streaming(handle="grok", since=None, until=None, query_type="Latest", in
             total_search_pages,
             total_upserts,
         )
-
         if build_final_json:
-            return export_json_from_db(out_path=out_path)
+            logging.info("💾\Exporting to json from db")
+            return export_json_from_db(out_path=out_path, grok_db_outpath=grok_db_outpath)
         return None
     except Exception as e:
         logging.error("🚫\tDumping partial DB to JSON due to error: %s", e)
-        try:
-            export_json_from_db(out_path=out_path)
-            logging.info("⚠️💾\tPartial dump complete: %s", out_path)
-        except Exception as dump_err:
-            logging.error("🚫\tFailed to dump partial JSON after error: %s", dump_err)
-        raise  # re-raise so callers know the run failed (remove if you prefer to swallow)
+        raise  # re-raise so callers know the run failed (remove if you prefer to swallow) -- swallow this
     finally:
         elapsed = time.time() - t0
         logging.info("Done! Run summary — elapsed=%.1fs | conversations=%d | search_pages=%d | upserts≈%d | api_success=%d / attempts=%d", elapsed,len(seen), total_search_pages, total_upserts, http.SUCCESSFUL_API_CALLS, http.TOTAL_API_CALLS,)

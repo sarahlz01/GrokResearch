@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 thread_lengths = []
 max_len = float("-inf")
 thid = 0
-with open("./grok_data/week3/output.json", "r") as f: # !! replace with the output.json (NOT CLEANED)
+with open("./grok_data/1-2july/output.json", "r") as f: # !! replace with the output.json (NOT CLEANED)
     # stream through "threads.item.tweets" arrays
     for thread in ijson.items(f, "item.threads.item"):
         threadid = thread.get("threadId", 0)

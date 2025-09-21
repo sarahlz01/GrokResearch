@@ -5,7 +5,6 @@ import sqlite3
 from typing import Iterable, Optional, Tuple
 from datetime import datetime
 
-DEFAULT_DB_PATH = os.getenv("GROK_DB_PATH", "grok_data/grok.sqlite3")
 
 BASE_DDL = """
 PRAGMA journal_mode=WAL;
@@ -33,7 +32,7 @@ CREATE TABLE IF NOT EXISTS checkpoints (
 """
 
 def _connect(db_path: Optional[str] = None) -> sqlite3.Connection:
-    path = db_path or DEFAULT_DB_PATH
+    path = db_path
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
     conn = sqlite3.connect(path, isolation_level=None)
     conn.execute("PRAGMA foreign_keys=ON;")
