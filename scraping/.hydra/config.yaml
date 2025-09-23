@@ -13,7 +13,7 @@ settings:
   number_conversations: 5
   build_final_json: true
   out_path: grok_data/${date.year}-${date.month}-${date.since_day}to${date.until_day}.json
-  grok_db_outpath: grok_data/testp2.sqlite3
+  grok_db_outpath: grok_data/test1/grok.sqlite3
 logging:
   run_name: test-p2
   log_dir: logs/crawl-test
