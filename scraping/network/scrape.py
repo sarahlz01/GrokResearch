@@ -200,7 +200,7 @@ def run_streaming(handle="grok", since=None, until=None, query_type="Latest", in
             total_upserts,
         )
         if build_final_json:
-            logging.info("💾\Exporting to json from db")
+            logging.info("💾\tExporting to json from db")
             return export_json_from_db(out_path=out_path, grok_db_outpath=grok_db_outpath)
         return None
     except Exception as e:

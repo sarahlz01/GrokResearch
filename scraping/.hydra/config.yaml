@@ -15,6 +15,6 @@ settings:
   out_path: grok_data/${date.year}-${date.month}-${date.since_day}to${date.until_day}.json
   grok_db_outpath: grok_data/test1/grok.sqlite3
 logging:
-  run_name: test-p2
+  run_name: test-p1
   log_dir: logs/crawl-test
   to_stdout: false
