@@ -78,4 +78,5 @@ def clean_conversations_minimal(out_obj: list) -> list:
             "conversationId": conv.get("conversationId"),
             "threads": threads
         })
+        
     return cleaned

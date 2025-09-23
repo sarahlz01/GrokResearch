@@ -21,6 +21,7 @@ def translate(raw_path, out_path):
     
     # build the output with all metadata
     out = build_threads_for_raw(raw)
+    out = [c for c in out if c.get("threads")] #drop conversations with 0 threads
     os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, indent=2)

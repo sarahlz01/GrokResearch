@@ -4,7 +4,8 @@ import matplotlib.pyplot as plt
 thread_lengths = []
 max_len = float("-inf")
 thid = 0
-with open("./grok_data/1-2july/output.json", "r") as f: # !! replace with the output.json (NOT CLEANED)
+len_1_counter =0 
+with open("./grok_data/MARCH/output.json", "r") as f: # !! replace with the output.json (NOT CLEANED)
     # stream through "threads.item.tweets" arrays
     for thread in ijson.items(f, "item.threads.item"):
         threadid = thread.get("threadId", 0)
@@ -13,9 +14,11 @@ with open("./grok_data/1-2july/output.json", "r") as f: # !! replace with the ou
         if len(tweets) >   max_len:
             max_len = len(tweets)
             thid = threadid
+        if len(tweets) <= 1:
+            len_1_counter += 1
 if thread_lengths:
     avg_length = sum(thread_lengths) / len(thread_lengths)
-    print(f"Average thread length: {avg_length:.2f} tweets")
+    print(f"Number of tweets with len <= 1: {len_1_counter}")
 else:
     print("No threads found.")
 
