@@ -22,7 +22,7 @@ settings:
   include_quotes: false
   include_retweets: false
   block_hours: 6
-  number_conversations: 150
+  number_conversations: 300
   build_final_json: false
   out_path: grok_data/${date.year}-${date.month}-${date.since_day}to${date.until_day}.json
   grok_db_outpath: grok_data/grok_2025_08/grok.sqlite3
