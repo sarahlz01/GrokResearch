@@ -123,6 +123,11 @@ def fetch_thread_pages_stream_by_tweet_id(tweet_id: str, conversation_id: str):
         else:
             consecutive_non_assistant += 1
             if consecutive_non_assistant >= MAX_NON_ASSISTANT:
+                try:
+                    pg["_stop_reason"] = "non_assistant_limit"
+                    pg["_incomplete_thread"] = True
+                except Exception:
+                    pass
                 break
         current_id = pg.get("inReplyToId")
             

@@ -119,8 +119,13 @@ def threads_for_conversation(conv):
             cur = parent
 
         chain_ids.reverse()  # oldest → newest
+        
+        chain_tweets = [id_map[tid] for tid in chain_ids]
+        stopped_flag = any((t.get("_incomplete_thread") is True) or (t.get("_stop_reason") == "non_assistant_limit")
+                           for t in chain_tweets)
         threads.append({
             "threadId": leaf_id,  # or last id, or hash(tuple(chain_ids))
+            "incomplete_thread": bool(stopped_flag),
             "has_missing_parent": has_missing_parent,
             "tweets": [id_map[tid] for tid in chain_ids],
         })
