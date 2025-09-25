@@ -117,7 +117,7 @@ def fetch_thread_pages_stream_by_tweet_id(tweet_id: str, conversation_id: str):
         current_id = pg.get("inReplyToId")
         
         author_un = ((pg.get("author") or {}).get("userName")) or pg.get("authorName")
-        is_assistant = (author_un == "Grok")
+        is_assistant = (author_un == "grok")
         if is_assistant:
             consecutive_non_assistant = 0
         else:
