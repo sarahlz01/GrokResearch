@@ -94,6 +94,8 @@ def fetch_thread_pages_stream_by_tweet_id(tweet_id: str, conversation_id: str):
     seen_ids = set()
     res = []
     current_id = str(tweet_id)
+    MAX_NON_ASSISTANT = 15
+    consecutive_non_assistant = 0
 
     while current_id:   
         if current_id in seen_ids: # avoid duplicates
@@ -112,6 +114,16 @@ def fetch_thread_pages_stream_by_tweet_id(tweet_id: str, conversation_id: str):
             break
         
         res.append(pg)
+        current_id = pg.get("inReplyToId")
+        
+        author_un = ((pg.get("author") or {}).get("userName")) or pg.get("authorName")
+        is_assistant = (author_un == "Grok")
+        if is_assistant:
+            consecutive_non_assistant = 0
+        else:
+            consecutive_non_assistant += 1
+            if consecutive_non_assistant >= MAX_NON_ASSISTANT:
+                break
         current_id = pg.get("inReplyToId")
             
     # Yield a single normalized "page" so downstream code stays unchanged
