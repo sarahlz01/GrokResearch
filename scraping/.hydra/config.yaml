@@ -1,18 +1,20 @@
 date:
   year: 2025
-  month: 7
-  since_day: 13
-  until_day: 19
+  month: 3
+  since_day: 10
+  until_day: 10
 settings:
   handle: grok
   query_type: Latest
   include_self_threads: false
   include_quotes: false
   include_retweets: false
-  block_hours: 6
-  number_conversations: 75
+  block_hours: 8
+  number_conversations: 2
   build_final_json: false
   out_path: grok_data/${date.year}-${date.month}-${date.since_day}to${date.until_day}.json
+  grok_db_outpath: grok_data/test.sqlite3
 logging:
-  run_name: crawl_week_2025-07_20to_26
+  run_name: test_copy
+  log_dir: logs/tests
   to_stdout: false

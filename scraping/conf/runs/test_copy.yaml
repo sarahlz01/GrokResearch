@@ -10,10 +10,10 @@ hydra:
     chdir: false
 
 date:
-  year: 2024
-  month: 11
-  since_day: 1
-  until_day: 30
+  year: 2025
+  month: 3
+  since_day: 10
+  until_day: 10
 
 settings:
   handle: grok
@@ -21,11 +21,13 @@ settings:
   include_self_threads: false
   include_quotes: false
   include_retweets: false
-  block_hours: 6
-  number_conversations: 75
+  block_hours: 8
+  number_conversations: 2
   build_final_json: false
   out_path: grok_data/${date.year}-${date.month}-${date.since_day}to${date.until_day}.json
+  grok_db_outpath: grok_data/test.sqlite3
 
 logging:
-  run_name: crawl_2024-11
+  run_name: test_copy
+  log_dir: logs/tests
   to_stdout: false

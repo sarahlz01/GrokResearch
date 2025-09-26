@@ -9,9 +9,9 @@ from cleaning.clean_threads import clean_conversations_minimal
 from db.storage import init_db
 
 
-def export_json_from_db(out_path: str):
+def export_json_from_db(out_path: str, grok_db_outpath):
     raw_path = out_path[0:out_path.find(".json")]+"_RAW"+".json"
-    dump_conversations_raw(raw_path)
+    dump_conversations_raw(raw_path, grok_db_outpath)
     translate(raw_path, out_path)
 
 def translate(raw_path, out_path):
@@ -21,6 +21,7 @@ def translate(raw_path, out_path):
     
     # build the output with all metadata
     out = build_threads_for_raw(raw)
+    out = [c for c in out if c.get("threads")] #drop conversations with 0 threads
     os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, indent=2)
@@ -32,7 +33,7 @@ def translate(raw_path, out_path):
         json.dump(cleaned, f2, ensure_ascii=False, indent=2)
 
 # dump the db into json without organizing
-def dump_conversations_raw(out_path: str) -> List[dict]:
+def dump_conversations_raw(out_path: str, grok_db_outpath:str) -> List[dict]:
     """
     Dump *all* tweets from SQLite grouped by conversationId to a simple JSON:
       [
@@ -43,7 +44,7 @@ def dump_conversations_raw(out_path: str) -> List[dict]:
       - Every tweet row for a conversation is included exactly once
       - Tweets are sorted by (created_at_ts, id)
     """
-    conn = init_db()
+    conn = init_db(grok_db_outpath)
     rows = conn.execute(
         "SELECT conversation_id, id, created_at_ts, json FROM tweets "
         "WHERE conversation_id IS NOT NULL "
@@ -118,8 +119,13 @@ def threads_for_conversation(conv):
             cur = parent
 
         chain_ids.reverse()  # oldest → newest
+        
+        chain_tweets = [id_map[tid] for tid in chain_ids]
+        stopped_flag = any((t.get("_incomplete_thread") is True) or (t.get("_stop_reason") == "non_assistant_limit")
+                           for t in chain_tweets)
         threads.append({
             "threadId": leaf_id,  # or last id, or hash(tuple(chain_ids))
+            "incomplete_thread": bool(stopped_flag),
             "has_missing_parent": has_missing_parent,
             "tweets": [id_map[tid] for tid in chain_ids],
         })

@@ -28,10 +28,12 @@ class SettingsCfg:
     number_conversations: int = 150
     build_final_json: bool = True
     out_path: str = 'grok_data/${date.year}-${date.month}.json'
+    grok_db_outpath: str = 'grok_data/grok.sqlite3'
 
 @dataclass
 class LoggingCfg:
     run_name: str = "run"
+    log_dir: str = "logs"
     to_stdout: bool = False
 
 @dataclass
@@ -42,7 +44,7 @@ class Config:
 
 @hydra.main(config_path="conf", config_name=None, version_base=None)
 def main(cfg: DictConfig):
-    setup_logging(run_name=cfg.logging.run_name, log_dir="logs", to_stdout=cfg.logging.to_stdout)
+    setup_logging(run_name=cfg.logging.run_name, log_dir=cfg.logging.log_dir, to_stdout=cfg.logging.to_stdout)
 
     # Parse + validate once
     year  = int(cfg.date.year)
@@ -79,6 +81,7 @@ def main(cfg: DictConfig):
                     build_final_json=cfg.settings.build_final_json,
                     out_path=cfg.settings.out_path,
                     number_conversations=cfg.settings.number_conversations,
+                    grok_db_outpath=cfg.settings.grok_db_outpath
                 )
             except KeyboardInterrupt:
                 logging.error("‼️\tInterrupted; aborting remaining blocks.")

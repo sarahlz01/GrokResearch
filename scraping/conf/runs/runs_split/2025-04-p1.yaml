@@ -13,7 +13,7 @@ date:
   year: 2025
   month: 4
   since_day: 1
-  until_day: 30
+  until_day: 15
 
 settings:
   handle: grok
@@ -25,9 +25,9 @@ settings:
   number_conversations: 300
   build_final_json: false
   out_path: grok_data/${date.year}-${date.month}-${date.since_day}to${date.until_day}.json
-  grok_db_outpath: grok_data/grok_2025_04.sqlite3
+  grok_db_outpath: grok_data/grok_2025_04/grok.sqlite3
 
 logging:
-  run_name: full
+  run_name: p1
   log_dir: logs/crawl_2025-04
   to_stdout: false

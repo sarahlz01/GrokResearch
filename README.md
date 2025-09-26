@@ -8,7 +8,7 @@ To run the **SCRAPING** code, run the following commands
 - Set up virtual environment: `python3 -m venv venv`
 - Activate/start the virtual environment: `source venv/bin/activate`
 - Install packages: `pip install -r scrape_requirements.txt`
-- Run the program using one of the config files in /conf/ `python3 main --config-dir conf/runs --config-name <NAME OF YAML FILE WITHOUT .yaml>`
+- Run the program using one of the config files in /conf/ `python3 main.py --config-dir conf/runs --config-name <NAME OF YAML FILE WITHOUT .yaml>`
 
 Notes
 
