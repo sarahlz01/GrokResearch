@@ -4,8 +4,14 @@ GROK_USER_ID = "1720665183188922368"
 
 # Leading @mentions block (remove entirely)
 _LEADING_MENTIONS = re.compile(r'^(?:\s*@\w+\b[^\S\r\n]*)+')
+
+
+# Leading @mentions block (capture so we can selectively keep @grok)
+_LEADING_MENTIONS_BLOCK = re.compile(
+    r'^(?P<block>(?:\s*[@＠][A-Za-z0-9_]{1,15}[^\S\r\n]*)+)'
+)
 # Plain word "grok"
-_ANY_GROK_WORD = re.compile(r'\bgrok\b', re.IGNORECASE)
+_ANY_GROK_ANYWHERE = re.compile(r'(?:grok|[Ｇｇ][Ｒｒ][Ｏｏ][Ｋｋ])', re.IGNORECASE)
 # URLs
 _URLS = re.compile(r'https?://\S+')
 
@@ -26,15 +32,26 @@ def author_name_from_author(author: dict, alias_map: dict) -> str:
 def clean_text_with_map(text: str, alias_map: dict) -> str:
     if not isinstance(text, str):
         return ""
-
-    s = _LEADING_MENTIONS.sub("", text).lstrip()
+    
+    s = text
+    prefix = ""
+    # If the text starts with a mentions block, keep exactly one <ASSISTANT> if @grok is present there.
+    m = _LEADING_MENTIONS_BLOCK.match(s)
+    if m:
+        block = m.group("block")
+        if re.search(r'@grok\b', block, flags=re.IGNORECASE):
+            prefix = "<ASSISTANT> "
+        # drop the whole mentions block (we already preserved @grok via prefix)
+        s = s[m.end():].lstrip()
+    else:
+        s = s.lstrip()
 
     # Special-case @grok first → [ASSISTANT]
-    s = re.sub(r'@grok\b', "<ASSISTANT>", s, flags=re.IGNORECASE)
+    s = re.sub(r'[@＠]grok(?![A-Za-z0-9_])', "<ASSISTANT>", s, flags=re.IGNORECASE)
 
     # Replace other mentions with stable <USER_n> tokens
     def _mention_sub(m):
-        handle = m.group(0)[1:]
+        handle = m.group(1)
         key = handle.lower()
         if key == "grok":
             return "<ASSISTANT>"
@@ -45,13 +62,17 @@ def clean_text_with_map(text: str, alias_map: dict) -> str:
     s = re.sub(r'@(\w+)\b', _mention_sub, s)
 
     # Replace plain 'grok' (non-mention) with [ASSISTANT]
-    s = _ANY_GROK_WORD.sub("<ASSISTANT>", s)
+    s = _ANY_GROK_ANYWHERE.sub("<ASSISTANT>", s)
 
     # Replace links with [LINK]
     s = _URLS.sub("<LINK>", s)
 
     # Normalize whitespace
-    return " ".join(s.split())
+    s = " ".join(s.split())
+    out = (prefix + s).strip()
+    out = re.sub(r'^(?:<ASSISTANT>\s*){2,}', '<ASSISTANT> ', out)
+    
+    return out
 
 def clean_tweet_minimal(t: dict, alias_map: dict) -> dict:
     return {
