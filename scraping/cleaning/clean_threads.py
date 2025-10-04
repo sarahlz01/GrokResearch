@@ -32,26 +32,30 @@ def author_name_from_author(author: dict, alias_map: dict) -> str:
 def clean_text_with_map(text: str, alias_map: dict) -> str:
     if not isinstance(text, str):
         return ""
-    
+
     s = text
     prefix = ""
-    # If the text starts with a mentions block, keep exactly one <ASSISTANT> if @grok is present there.
+
+    # If the text starts with a mentions block, optionally keep a single <ASSISTANT>
+    # Heuristic: keep it iff (a) ONLY @grok is present, or (b) the block ends with @grok.
     m = _LEADING_MENTIONS_BLOCK.match(s)
     if m:
         block = m.group("block")
-        if re.search(r'@grok\b', block, flags=re.IGNORECASE):
+        handles = [h.lower() for h in re.findall(r'[@＠]([A-Za-z0-9_]{1,15})', block)]
+        contains_grok = "grok" in handles
+        if contains_grok and (len(set(handles)) == 1 or (handles and handles[-1] == "grok")):
             prefix = "<ASSISTANT> "
-        # drop the whole mentions block (we already preserved @grok via prefix)
+        # drop the whole mentions block (we already preserved conditionally)
         s = s[m.end():].lstrip()
     else:
         s = s.lstrip()
 
-    # Special-case @grok first → [ASSISTANT]
+    # Special-case @grok / ＠grok → <ASSISTANT>
     s = re.sub(r'[@＠]grok(?![A-Za-z0-9_])', "<ASSISTANT>", s, flags=re.IGNORECASE)
 
     # Replace other mentions with stable <USER_n> tokens
     def _mention_sub(m):
-        handle = m.group(1)
+        handle = m.group(1)  # captured without the @/＠
         key = handle.lower()
         if key == "grok":
             return "<ASSISTANT>"
@@ -59,20 +63,23 @@ def clean_text_with_map(text: str, alias_map: dict) -> str:
             alias_map[key] = f"<USER_{len(alias_map) + 1}>"
         return alias_map[key]
 
-    s = re.sub(r'@(\w+)\b', _mention_sub, s)
+    # Mentions: support ASCII '@' and full-width '＠'; limit to valid handle chars and length
+    s = re.sub(r'[@＠]([A-Za-z0-9_]{1,15})(?![A-Za-z0-9_])', _mention_sub, s)
 
-    # Replace plain 'grok' (non-mention) with [ASSISTANT]
+    # Replace ANY "grok" substring anywhere (inside words/hashtags/etc.), including full-width variants
     s = _ANY_GROK_ANYWHERE.sub("<ASSISTANT>", s)
 
-    # Replace links with [LINK]
+    # Replace links with <LINK>
     s = _URLS.sub("<LINK>", s)
 
-    # Normalize whitespace
+    # Normalize whitespace, then prepend preserved leading <ASSISTANT> (if any)
     s = " ".join(s.split())
     out = (prefix + s).strip()
+
+    # Deduplicate leading <ASSISTANT> tokens (e.g., prefix + body also starts with GROK)
     out = re.sub(r'^(?:<ASSISTANT>\s*){2,}', '<ASSISTANT> ', out)
-    
     return out
+
 
 def clean_tweet_minimal(t: dict, alias_map: dict) -> dict:
     return {
