@@ -16,6 +16,7 @@ def build_query(handle: str,include_self_threads: bool = False, include_quotes: 
     parts.append("filter:retweets" if include_retweets else "-filter:retweets")
     parts.append("filter:quote" if include_quotes else "-filter:quote")
     parts.append("filter:self_threads" if include_self_threads else "-filter:self_threads")
+    parts.append("-filter:media")
     if since: parts.append(f"since:{format_time_utc(since)}")
     if until: parts.append(f"until:{format_time_utc(until)}")
     query = " ".join(parts)
