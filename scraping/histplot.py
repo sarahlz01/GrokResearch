@@ -57,7 +57,7 @@ if thread_lengths:
     print(f"Average Grok reply ratio: {avg_grok_ratio:.3f}")
     print(f"Threads with length <= 1: {len_1_counter}")
     print(f"Max thread length: {max(thread_lengths)} (threadId: {max_len_thread_id})")
-    print(f"Grok threads with > 0.5 ratio {grok_ratios_with_more_than_50}")
+    print(f"Grok threads with > 0.5 ratio {len(grok_ratios_with_more_than_50)}")
 else:
     print("No threads found.")
 
