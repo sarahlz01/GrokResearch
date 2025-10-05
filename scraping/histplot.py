@@ -3,7 +3,7 @@ import math
 import matplotlib.pyplot as plt
 
 # ====== CONFIG ======
-INPUT_PATH = "./grok_data/merged_groks/march_july_1aug/output_CLEANED.json"  # <- your file
+INPUT_PATH = "./output_CLEANED.json"  # <- your file
 ASSISTANT_NAME = "<ASSISTANT>"
 CUTOFF = 50# for cropped views
 
@@ -16,6 +16,7 @@ max_len_thread_id = None
 
 # New collections for Grok ratio plot
 grok_ratios = []   # per-thread ratio = (# ASSISTANT tweets) / (thread length)
+grok_ratios_with_more_than_50 = []
 thread_ids = []    # keep ids around for debug/stats if needed
 
 # ====== STREAM & COLLECT ======
@@ -43,6 +44,8 @@ with open(INPUT_PATH, "r") as f:
             ratio = math.nan  # should not happen with n==0, but safe-guard
 
         grok_ratios.append(ratio)
+        if ratio > 0.5:
+            grok_ratios_with_more_than_50.append(threadid)
         thread_ids.append(threadid)
 
 # ====== PRINT STATS ======
@@ -54,6 +57,7 @@ if thread_lengths:
     print(f"Average Grok reply ratio: {avg_grok_ratio:.3f}")
     print(f"Threads with length <= 1: {len_1_counter}")
     print(f"Max thread length: {max(thread_lengths)} (threadId: {max_len_thread_id})")
+    print(f"Grok threads with > 0.5 ratio {grok_ratios_with_more_than_50}")
 else:
     print("No threads found.")
 
