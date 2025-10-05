@@ -1,0 +1,22 @@
+{
+  "total_pairs_analyzed": 331,
+  "jailbreaking_attempts_detected": 22,
+  "jailbreaking_rate": 6.65,
+  "risk_level_distribution": {
+    "unknown": 331
+  },
+  "top_jailbreaking_techniques": {
+    "misinformation requests": 138,
+    "emotional manipulation": 53,
+    "hypothetical situations": 13,
+    "social engineering": 9,
+    "roleplay": 2,
+    "technical exploits": 1,
+    "authority figures": 1,
+    "privacy violations": 1
+  },
+  "compliance_issues": 0,
+  "compliance_rate": 100.0,
+  "error_count": 0,
+  "successful_analyses": 331
+}
