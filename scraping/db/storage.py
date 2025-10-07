@@ -151,6 +151,15 @@ def load_checkpoint(conn: sqlite3.Connection, key: str) -> Optional[str]:
     row = cur.fetchone()
     return row[0] if row else None
 
+def tweet_exists(conn: sqlite3.Connection, tweet_id: str) -> bool:
+    """
+    Return True iff a tweet with this id exists in the DB.
+    """
+    if not tweet_id:
+        return False
+    cur = conn.execute("SELECT 1 FROM tweets WHERE id = ? LIMIT 1;", (tweet_id,))
+    return cur.fetchone() is not None
+
 
 from typing import Optional, Tuple
 import os

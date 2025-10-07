@@ -15,7 +15,7 @@ from typing import Dict, Set
 
 from cleaning.clean_objects_while_scraping import build_query, extract_items
 from cleaning.convert_db_to_json import export_json_from_db
-from db.storage import init_db, upsert_tweets
+from db.storage import init_db, tweet_exists, upsert_tweets
 
 def search_grok_replies_stream(handle="grok", since=None, until=None, query_type="Latest", include_self_threads=False, include_quotes=False, include_retweets=False):
     query = build_query(handle, include_self_threads, include_quotes, include_retweets, since, until)
@@ -87,7 +87,7 @@ def fetch_thread_pages_stream_thread_context(tweet_id: str, conversation_id: str
     # Yield a single normalized "page" so downstream code stays unchanged
     yield {"tweets": merged}
     
-def fetch_thread_pages_stream_by_tweet_id(tweet_id: str, conversation_id: str):
+def fetch_thread_pages_stream_by_tweet_id(tweet_id: str, conversation_id: str, db_conn):
     """
     Call /twitter/tweets and climb to each tweet using inReplyToId
     """
@@ -100,6 +100,10 @@ def fetch_thread_pages_stream_by_tweet_id(tweet_id: str, conversation_id: str):
     while current_id:   
         if current_id in seen_ids: # avoid duplicates
             break
+        
+        if tweet_exists(db_conn, current_id): # stop crawling up if this already exists in the DB
+            break
+
         seen_ids.add(current_id) 
         
         
@@ -198,7 +202,7 @@ def run_streaming(handle="grok", since=None, until=None, query_type="Latest", in
                     seen[conv_id].add(rid)
 
                     # add/upsert each page result from the stream 
-                    for page in fetch_thread_pages_stream_by_tweet_id(tweet_id=rid, conversation_id=conv_id):
+                    for page in fetch_thread_pages_stream_by_tweet_id(tweet_id=rid, conversation_id=conv_id, db_conn=db_conn):
                         _, page_items = extract_items(page)
                         if db_conn and page_items:
                             normalized = [t for t in page_items if isinstance(t, dict)]
