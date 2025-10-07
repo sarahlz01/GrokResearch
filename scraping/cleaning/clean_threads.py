@@ -11,7 +11,7 @@ _LEADING_MENTIONS_BLOCK = re.compile(
     r'^(?P<block>(?:\s*[@＠][A-Za-z0-9_]{1,15}[^\S\r\n]*)+)'
 )
 # Plain word "grok"
-_ANY_GROK_ANYWHERE = re.compile(r'(?:grok|[Ｇｇ][Ｒｒ][Ｏｏ][Ｋｋ])', re.IGNORECASE)
+_ANY_GROK_ANYWHERE = re.compile(r'(?:grok|[Ｇｇ][Ｒｒ][Ｏｏ][Ｋｋ])(?!k+(ing)|(ed))', re.IGNORECASE)
 # URLs
 _URLS = re.compile(r'https?://\S+')
 
