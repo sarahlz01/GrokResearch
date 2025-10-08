@@ -12,8 +12,8 @@ hydra:
 date:
   year: 2025
   month: 8
-  since_day: 1
-  until_day: 3
+  since_day: 21
+  until_day: 31
 
 settings:
   handle: grok
@@ -28,6 +28,6 @@ settings:
   grok_db_outpath: grok_data/grok_2025_08/grok.sqlite3
 
 logging:
-  run_name: p1
+  run_name: p3
   log_dir: logs/crawl_2025-08
   to_stdout: false

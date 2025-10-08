@@ -12,8 +12,8 @@ hydra:
 date:
   year: 2025
   month: 8
-  since_day: 16
-  until_day: 31
+  since_day: 9
+  until_day: 20
 
 settings:
   handle: grok
