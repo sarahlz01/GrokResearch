@@ -96,6 +96,7 @@ def fetch_thread_pages_stream_by_tweet_id(tweet_id: str, conversation_id: str, d
     current_id = str(tweet_id)
     MAX_NON_ASSISTANT = 15
     consecutive_non_assistant = 0
+    tweet_counter = 0
 
     while current_id:   
         if current_id in seen_ids: # avoid duplicates
@@ -103,7 +104,7 @@ def fetch_thread_pages_stream_by_tweet_id(tweet_id: str, conversation_id: str, d
         
         if tweet_exists(db_conn, current_id): # stop crawling up if this already exists in the DB
             break
-
+        
         seen_ids.add(current_id) 
         
         
@@ -132,8 +133,18 @@ def fetch_thread_pages_stream_by_tweet_id(tweet_id: str, conversation_id: str, d
                     pg["_incomplete_thread"] = True
                 except Exception:
                     pass
-                break
+                finally:
+                    break
         current_id = pg.get("inReplyToId")
+        tweet_counter += 1
+        if tweet_counter > 150:
+            try:
+                    pg["_stop_reason"] = "tweet_counter_reached_150"
+                    pg["_incomplete_thread"] = True
+            except Exception:
+                    pass
+            finally:
+                break
             
     # Yield a single normalized "page" so downstream code stays unchanged
     yield {"tweets": res}

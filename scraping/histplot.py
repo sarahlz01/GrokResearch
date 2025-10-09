@@ -18,7 +18,7 @@ max_len_thread_id = None
 grok_ratios = []   # per-thread ratio = (# ASSISTANT tweets) / (thread length)
 grok_ratios_with_more_than_50 = []
 thread_ids = []    # keep ids around for debug/stats if needed
-
+threads_greater_100_count = 0
 # ====== STREAM & COLLECT ======
 with open(INPUT_PATH, "r") as f:
     # stream each thread object
@@ -30,6 +30,9 @@ with open(INPUT_PATH, "r") as f:
         # basic stats you've had
         thread_counter += 1
         thread_lengths.append(n)
+        
+        if n >= 100:
+            threads_greater_100_count += 1
         if n > max_len:
             max_len = n
             max_len_thread_id = threadid
@@ -57,14 +60,13 @@ if thread_lengths:
     print(f"Average Grok reply ratio: {avg_grok_ratio:.3f}")
     print(f"Threads with length <= 1: {len_1_counter}")
     print(f"Max thread length: {max(thread_lengths)} (threadId: {max_len_thread_id})")
+    print(f"Number of threads >= 100:\t{threads_greater_100_count}")
     print(f"Grok threads with > 0.5 ratio {len(grok_ratios_with_more_than_50)}")
 else:
     print("No threads found.")
 
 # ====== HISTOGRAMS (as in your original) ======
 if thread_lengths:
-    print("max thread length\t" + str(max(thread_lengths)) + "\t With threadId: " + str(max_len_thread_id))
-
     # Full histogram
     plt.figure(figsize=(8, 6))
     # Use a sensible bins range (1..max_len+1) so edges align on integers
