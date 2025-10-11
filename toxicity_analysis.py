@@ -31,12 +31,12 @@ DetectorFactory.seed = 0
 class AnalysisConfig:
     """Configuration for analysis parameters."""
     # Detoxify models are initialized synchronously here
-    english_model: Any = Detoxify("original") # Explicitly type as Any for the imported object
-    fallback_english_models: List[str] = None  # Models to try if primary fails
-    multilingual_model: Any = Detoxify("multilingual") # Explicitly type as Any for the imported object
+    english_model: Any = Detoxify("original")
+    fallback_english_models: List[str] = None 
+    multilingual_model: Any = Detoxify("multilingual")
     max_retries: int = 3
     cache_enabled: bool = True
-    max_conversations: int = None  # Maximum conversations to process (None = all)
+    max_conversations: int = None
 
     def __post_init__(self):
         if self.fallback_english_models is None:
@@ -63,7 +63,7 @@ class EncodingHandler:
     def repair_mojibake(text: str) -> str:
         """Fix UTF-8 that was mis-decoded as Windows-1252/Latin-1."""
         try:
-            # Attempt to decode it assuming it was mistakenly read as latin1, 
+            # attempt to decode it assuming it was mistakenly read as latin1, 
             # and then decode to the correct utf-8
             return text.encode("latin1").decode("utf-8")
         except (UnicodeEncodeError, UnicodeDecodeError):
