@@ -90,7 +90,7 @@ hydra:
     override_dirname: ''
     id: ???
     num: ???
-    config_name: test5
+    config_name: 2025-08-p5
     env_set: {}
     env_copy: []
     config:
@@ -101,21 +101,21 @@ hydra:
   runtime:
     version: 1.3.2
     version_base: '1.3'
-    cwd: /Users/berat/Projects/GrokResearch/scraping
+    cwd: /workspace/berat/GrokResearch/scraping
     config_sources:
     - path: hydra.conf
       schema: pkg
       provider: hydra
-    - path: /Users/berat/Projects/GrokResearch/scraping/conf
+    - path: /workspace/berat/GrokResearch/scraping/conf
       schema: file
       provider: main
-    - path: /Users/berat/Projects/GrokResearch/scraping/conf/runs/runs_split
+    - path: /workspace/berat/GrokResearch/scraping/conf/runs/runs_split
       schema: file
       provider: command-line
     - path: ''
       schema: structured
       provider: schema
-    output_dir: /Users/berat/Projects/GrokResearch/scraping
+    output_dir: /workspace/berat/GrokResearch/scraping
     choices:
       hydra/env: default
       hydra/callbacks: null
