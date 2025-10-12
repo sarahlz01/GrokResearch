@@ -90,7 +90,7 @@ hydra:
     override_dirname: ''
     id: ???
     num: ???
-    config_name: 2025-08-p5
+    config_name: 2025-09-p4
     env_set: {}
     env_copy: []
     config:
