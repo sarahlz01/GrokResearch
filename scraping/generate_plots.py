@@ -1,19 +1,21 @@
 #!/usr/bin/env python3
 import argparse
 import json
-from collections import Counter
+from collections import Counter, defaultdict
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Tuple, Optional, Iterable
+import math
+import numpy as np
 
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 mpl.rcParams.update({
-    "font.size": 16,        # base
-    "axes.titlesize": 18,
-    "axes.labelsize": 18,
-    "xtick.labelsize": 16,
-    "ytick.labelsize": 16,
-    "legend.fontsize": 14,
+    "font.size": 20,        # base
+    "axes.titlesize": 20,
+    "axes.labelsize": 24,
+    "xtick.labelsize": 22,
+    "ytick.labelsize": 22,
+    "legend.fontsize": 20,
 })
 
 # ---------- Config ----------
@@ -119,6 +121,74 @@ def normalize_lang_code(code: str) -> Optional[str]:
     # Regular languages
     return LANGUAGE_LABELS.get(c, c.upper())  # fallback: show code uppercased
 
+# ---------- Engagement helpers (surgical additions) ----------
+# Engagement metrics tracked for distribution (human vs LLM)
+ENG_METRICS = ("views", "likes", "reposts", "replies", "quotes", "bookmarks")
+
+# Heavy-tail-friendly histogram edges (inclusive left, exclusive right; last is [last, +inf))
+ENG_BINS = [0, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1_000, 2_000, 5_000,
+            10_000, 50_000, 100_000, 1_000_000]
+
+def _to_int(x) -> int:
+    try:
+        return int(x)
+    except Exception:
+        try:
+            return int(float(x))
+        except Exception:
+            return 0
+
+def _extract_engagement(t: dict) -> dict:
+    """
+    Normalize engagement fields from various tweet shapes:
+      - v2 raw: t['public_metrics'] = {like_count, reply_count, retweet_count, quote_count, impression_count, ...}
+      - cleaned/legacy: likeCount, replyCount, retweetCount, quoteCount, bookmarkCount, views/viewCount
+    Returns ints for: views, likes, replies, quotes, reposts(=retweets+quotes), bookmarks.
+    """
+    m = t.get("metrics") or t.get("public_metrics") or {}
+
+    # Views / impressions
+    views = (
+        t.get("views")
+        or m.get("impression_count")
+        or m.get("views")
+        or t.get("viewCount")
+        or 0
+    )
+
+    likes = t.get("likeCount") or m.get("like_count") or 0
+    replies = t.get("replyCount") or m.get("reply_count") or t.get("commentCount") or 0
+    retweets = t.get("retweetCount") or m.get("retweet_count") or 0
+    quotes = t.get("quoteCount") or m.get("quote_count") or 0
+    bookmarks = t.get("bookmarkCount") or m.get("bookmark_count") or 0
+
+    return {
+        "views": _to_int(views),
+        "likes": _to_int(likes),
+        "replies": _to_int(replies),
+        "quotes": _to_int(quotes),
+        "reposts": _to_int(retweets) + _to_int(quotes),  # derived
+        "bookmarks": _to_int(bookmarks),
+    }
+
+def _empty_hist():
+    """metric -> zeroed histogram list for ENG_BINS."""
+    return {m: [0] * len(ENG_BINS) for m in ENG_METRICS}
+
+def _bin_index(v: int) -> int:
+    for i in range(len(ENG_BINS) - 1):
+        if ENG_BINS[i] <= v < ENG_BINS[i + 1]:
+            return i
+    return len(ENG_BINS) - 1
+
+def _update_engagement_aggregates(agg_sums: dict, agg_counts: dict, agg_hists: dict, metrics: dict):
+    """Accumulate sums, counts, and histograms for one tweet's metrics."""
+    for m in ENG_METRICS:
+        val = _to_int(metrics.get(m, 0))
+        agg_sums[m] += val
+        agg_counts[m] += 1
+        agg_hists[m][_bin_index(val)] += 1
+
 # ---------- Utilities ----------
 def parse_date_safe(s: Optional[str]) -> Optional[datetime]:
     if not s:
@@ -210,6 +280,7 @@ def aggregate_stats(input_path: str) -> Dict:
       - turn buckets (2..10+), percent plotted later (unchanged)
       - weekly THREADS/time split by last author (user/grok), + 'Before Mar'
       - weekly TWEETS/time split by author (user/grok), + 'Before Mar'
+      - engagement distribution across tweet types (user vs LLM)
     """
     # (A) Conversations total + (legacy) majority language per conversation
     total_conversations = 0
@@ -285,6 +356,15 @@ def aggregate_stats(input_path: str) -> Dict:
     wk_tweets_grok = Counter()
     before_mar_tweets_user = 0
     before_mar_tweets_grok = 0
+
+    # Engagement aggregates (user vs grok)
+    eng_user_sums = defaultdict(int)
+    eng_grok_sums = defaultdict(int)
+    eng_user_counts = defaultdict(int)
+    eng_grok_counts = defaultdict(int)
+    eng_user_hists = _empty_hist()
+    eng_grok_hists = _empty_hist()
+
     for conv in iter_conversations(input_path):
         for th in conv.get("threads", []) or []:
             for t in th.get("tweets", []) or []:
@@ -305,6 +385,13 @@ def aggregate_stats(input_path: str) -> Dict:
                         wk_tweets_user[wk] += 1
                 # > END_DATE ignored
 
+                # Engagement distribution (include all tweets; if you want to limit to Mar–Oct, indent under the elif above)
+                em = _extract_engagement(t)
+                if is_g:
+                    _update_engagement_aggregates(eng_grok_sums, eng_grok_counts, eng_grok_hists, em)
+                else:
+                    _update_engagement_aggregates(eng_user_sums, eng_user_counts, eng_user_hists, em)
+
     return {
         "totals": {
             "conversations": total_conversations,
@@ -323,6 +410,21 @@ def aggregate_stats(input_path: str) -> Dict:
         "before_mar_tweets_user": before_mar_tweets_user,
         "before_mar_tweets_grok": before_mar_tweets_grok,
         "window": {"start": START_DATE.isoformat(), "end": END_DATE.isoformat()},
+        # --- New engagement distribution output ---
+        "engagement": {
+            "bins": ENG_BINS,                 # histogram bin edges
+            "metrics": ENG_METRICS,           # metric names order
+            "user": {
+                "sums": dict(eng_user_sums),      # total per metric
+                "counts": dict(eng_user_counts),  # tweet count per metric
+                "hists": eng_user_hists,          # metric -> [bin counts...]
+            },
+            "grok": {
+                "sums": dict(eng_grok_sums),
+                "counts": dict(eng_grok_counts),
+                "hists": eng_grok_hists,
+            },
+        },
     }
 
 
@@ -413,12 +515,12 @@ def plot_threads_over_weeks_stacked(stats: Dict, save_prefix: str):
         int(user_map.get(w.isoformat(), 0)) + int(grok_map.get(w.isoformat(), 0))
         for w in weeks
     ]
-
+    
     plt.figure(figsize=(14, 6))
     plt.bar(labels, counts)  # single solid series
     plt.xlabel("Week (start date)")
     plt.ylabel("Threads")
-    plt.xticks(rotation=60, ha="right")
+    plt.xticks(rotation=90, ha="center")
     plt.tight_layout()
     plt.savefig(f"{save_prefix}_threads_per_week.png", dpi=220)
 
@@ -440,10 +542,73 @@ def plot_tweets_over_weeks_stacked(stats: Dict, save_prefix: str):
     plt.bar(labels, grok_counts, bottom=user_counts, label="Grok", color="orange")
     plt.xlabel("Week (start date)")
     plt.ylabel("Tweets")
-    plt.xticks(rotation=60, ha="right")
+    plt.xticks(rotation=90, ha="center")
     plt.legend()
     plt.tight_layout()
     plt.savefig(f"{save_prefix}_tweets_per_week.png", dpi=220)
+
+
+def _format_bin_labels(edges: List[int]) -> List[str]:
+    """
+    Turn edges like [0,1,2,5,10,...,1000000] into:
+    ["0", "1", "2–4", "5–9", "10–19", ..., "1000000+"]
+    """
+    labels = []
+    for i in range(len(edges) - 1):
+        a, b = edges[i], edges[i + 1]
+        if b - a == 1:
+            labels.append(f"{a}")
+        elif a == 0 and b == 1:
+            labels.append("0")
+        else:
+            labels.append(f"{a}–{b-1}")
+    labels.append(f"{edges[-1]}+")
+    return labels
+
+def plot_engagement_totals(stats: Dict, save_prefix: str, use_log_scale: bool = True):
+    """
+    Compare summed engagement totals for User vs Grok.
+    Produces one figure with grouped bars per metric + an 'ALL' total.
+    Requires stats['engagement'] with 'metrics' and per-author 'sums'.
+    """
+    eng = stats.get("engagement", {})
+    metrics: List[str] = list(eng.get("metrics", []))
+    user_sums: Dict[str, int] = (eng.get("user", {}) or {}).get("sums", {}) or {}
+    grok_sums: Dict[str, int] = (eng.get("grok", {}) or {}).get("sums", {}) or {}
+
+    if not metrics:
+        print("No engagement metrics found in stats['engagement'].")
+        return
+
+    # Build sequences in a stable order
+    u_vals = [int(user_sums.get(m, 0)) for m in metrics]
+    g_vals = [int(grok_sums.get(m, 0)) for m in metrics]
+
+    # Add overall "ALL" totals across all metrics
+    u_all = sum(u_vals)
+    g_all = sum(g_vals)
+    metrics_plus = metrics + ["ALL"]
+    u_vals_plus = u_vals + [u_all]
+    g_vals_plus = g_vals + [g_all]
+
+    x = list(range(len(metrics_plus)))
+    width = 0.45
+
+    plt.figure(figsize=(14, 6))
+    # User (default), Grok (orange), side-by-side
+    plt.bar([i - width/2 for i in x], u_vals_plus, width=width, label="User")
+    plt.bar([i + width/2 for i in x], g_vals_plus, width=width, label="Grok", color="orange")
+
+    plt.xlabel("Engagement metric")
+    plt.ylabel("Total (sum across tweets)")
+    plt.xticks(x, metrics_plus, rotation=0)
+    if use_log_scale:
+        plt.yscale("log")  # handles huge 'views' vs smaller metrics
+        plt.ylabel("Total (log scale)")
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(f"{save_prefix}_eng_totals.png", dpi=220)
+    plt.close()
 
 
 # ---------- I/O ----------
@@ -465,7 +630,7 @@ def main():
     p.add_argument("--out", type=str, default="stats.json", help="Where to write aggregated stats JSON.")
     p.add_argument("--plot", action="store_true", help="Plot charts from an aggregated stats JSON via --stats.")
     p.add_argument("--stats", type=str, help="Path to aggregated stats JSON.")
-    p.add_argument("--save-prefix", type=str, default="wildchat", help="Prefix for saved plot files.")
+    p.add_argument("--save-prefix", type=str, default="grokset", help="Prefix for saved plot files.")
     args = p.parse_args()
 
     if args.aggregate:
@@ -484,6 +649,7 @@ def main():
         plot_languages_stacked(stats, args.save_prefix)
         plot_threads_over_weeks_stacked(stats, args.save_prefix)
         plot_tweets_over_weeks_stacked(stats, args.save_prefix)
+        plot_engagement_totals(stats, args.save_prefix)
         print(
             "Saved:",
             f"{args.save_prefix}_turns.png,",
