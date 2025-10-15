@@ -1,13 +1,21 @@
 import json
+import ijson
 from collections import defaultdict
 import os
 from typing import Dict, List, Set
+from decimal import Decimal
 import logging
 logging.getLogger(__name__)
 
 from cleaning.clean_threads import clean_conversations_minimal
 from db.storage import init_db
-
+def _json_default(o):
+    if isinstance(o, Decimal):
+        # keep integers as ints when possible
+        try:
+            return int(o) if o == o.to_integral_value() else float(o)
+        except Exception: return float(o)
+    raise TypeError(f"Object of type {type(o).__name__} is not JSON serializable")
 
 def export_json_from_db(out_path: str, grok_db_outpath):
     raw_path = out_path[0:out_path.find(".json")]+"_RAW"+".json"
@@ -15,67 +23,121 @@ def export_json_from_db(out_path: str, grok_db_outpath):
     translate(raw_path, out_path)
 
 def translate(raw_path, out_path):
-    os.makedirs(os.path.dirname(raw_path) or ".", exist_ok=True)
-    with open(raw_path, "r", encoding="utf-8") as f:
-        raw = json.load(f)
-    
-    # build the output with all metadata
-    out = build_threads_for_raw(raw)
-    out = [c for c in out if c.get("threads")] #drop conversations with 0 threads
-    os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
-    with open(out_path, "w", encoding="utf-8") as f:
-        json.dump(out, f, ensure_ascii=False, indent=2)
-    
-    # build the cleaned output    
-    cleaned = clean_conversations_minimal(out)
+    """
+    Stream-read RAW.json (array of conversations), and stream-write both:
+      - out_path                (thread-organized full JSON)
+      - out_path.replace(... )  (cleaned minimal JSON)
+    Nothing is fully loaded into memory.
+    """
+
     cleaned_path = out_path.replace(".json", "_CLEANED.json")
-    with open(cleaned_path, "w", encoding="utf-8") as f2:
-        json.dump(cleaned, f2, ensure_ascii=False, indent=2)
+    os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
+
+    # Prepare writers for the two output JSON arrays
+    out_f = open(out_path, "w", encoding="utf-8")
+    out_f.write("[\n")
+    first_full = True
+
+    clean_f = open(cleaned_path, "w", encoding="utf-8")
+    clean_f.write("[\n")
+    first_clean = True
+
+    try:
+        with open(raw_path, "r", encoding="utf-8") as f:
+            # stream each conversation object from the top-level array
+            for conv in ijson.items(f, "item", use_float=True):
+                threads = threads_for_conversation(conv)
+                if not threads:
+                    continue
+
+                full_conv = {
+                    "conversationId": conv["conversationId"],
+                    "threads": threads
+                }
+
+                # write full (thread-organized) object
+                if not first_full:
+                    out_f.write(",\n")
+                json.dump(full_conv, out_f, ensure_ascii=False, indent=2, default=_json_default)
+                first_full = False
+
+                # write cleaned object (re-use your existing cleaner over a single-item list)
+                cleaned_list = clean_conversations_minimal([full_conv])
+                cleaned_conv = cleaned_list[0] if cleaned_list else None
+                if cleaned_conv:
+                    if not first_clean:
+                        clean_f.write(",\n")
+                    json.dump(cleaned_conv, clean_f, ensure_ascii=False, indent=2, default=_json_default)
+                    first_clean = False
+    finally:
+        out_f.write("\n]\n")
+        out_f.close()
+        clean_f.write("\n]\n")
+        clean_f.close()
+
 
 # dump the db into json without organizing
-def dump_conversations_raw(out_path: str, grok_db_outpath:str) -> List[dict]:
+def dump_conversations_raw(out_path: str, grok_db_outpath: str) -> None:
     """
-    Dump *all* tweets from SQLite grouped by conversationId to a simple JSON:
+    Stream all tweets grouped by conversationId into a single JSON array, but
+    only keep one conversation in memory at a time.
+    Output format is unchanged:
       [
         {"conversationId": "<id>", "tweets": [<tweet_json>, ...]},
         ...
       ]
-    Guarantees:
-      - Every tweet row for a conversation is included exactly once
-      - Tweets are sorted by (created_at_ts, id)
     """
     conn = init_db(grok_db_outpath)
-    rows = conn.execute(
+    cur = conn.execute(
         "SELECT conversation_id, id, created_at_ts, json FROM tweets "
         "WHERE conversation_id IS NOT NULL "
         "ORDER BY conversation_id, created_at_ts, id"
-    ).fetchall()
+    )
 
-    conv_to_tweets: Dict[str, List[dict]] = {}
-    seen_in_conv: Dict[str, Set[str]] = {}
-
-    for conv_id, tid, ts, j in rows:
-        if not conv_id or not tid or not j:
-            continue
-        try:
-            t = json.loads(j)
-        except Exception:
-            continue
-        s = seen_in_conv.setdefault(conv_id, set())
-        if tid in s:
-            continue
-        s.add(tid)
-        conv_to_tweets.setdefault(conv_id, []).append(t)
-
-    out_list = [{"conversationId": cid, "tweets": conv_to_tweets[cid]} for cid in sorted(conv_to_tweets.keys())]
-
-    # simple write (no atomic swap)
     os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
     with open(out_path, "w", encoding="utf-8") as f:
-        json.dump(out_list, f, ensure_ascii=False, indent=2)
+        f.write("[\n")
 
-    logging.info("Raw dump: %d conversation(s) → %s", len(out_list), out_path)
-    return out_list
+        current_conv = None
+        current_tweets = []
+        current_seen = set()
+        first_obj = True
+
+        for conv_id, tid, ts, j in cur:
+            if not conv_id or not tid or not j:
+                continue
+
+            # when conversation changes, flush previous
+            if current_conv is not None and conv_id != current_conv:
+                obj = {"conversationId": current_conv, "tweets": current_tweets}
+                if not first_obj:
+                    f.write(",\n")
+                json.dump(obj, f, ensure_ascii=False)
+                first_obj = False
+                current_tweets = []
+                current_seen = set()
+
+            current_conv = conv_id
+            # dedupe per conversation
+            if tid in current_seen:
+                continue
+            current_seen.add(tid)
+
+            try:
+                t = json.loads(j, parse_float=float, parse_int=int)
+            except Exception:
+                continue
+            current_tweets.append(t)
+
+        # flush last conversation
+        if current_conv is not None:
+            obj = {"conversationId": current_conv, "tweets": current_tweets}
+            if not first_obj:
+                f.write(",\n")
+            json.dump(obj, f, ensure_ascii=False)
+
+        f.write("\n]\n")
+
 
 def build_threads_for_raw(raw_conversations):
     out = []
