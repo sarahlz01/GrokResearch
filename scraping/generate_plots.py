@@ -6,6 +6,15 @@ from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Tuple, Optional, Iterable
 
 import matplotlib.pyplot as plt
+import matplotlib as mpl
+mpl.rcParams.update({
+    "font.size": 16,        # base
+    "axes.titlesize": 18,
+    "axes.labelsize": 18,
+    "xtick.labelsize": 16,
+    "ytick.labelsize": 16,
+    "legend.fontsize": 14,
+})
 
 # ---------- Config ----------
 TWITTER_DATE_FMT = "%a %b %d %H:%M:%S %z %Y"
@@ -327,9 +336,8 @@ def plot_turns(stats: Dict, save_prefix: str):
 
     plt.figure(figsize=(9, 6))
     plt.bar(xs, ys)
-    plt.xlabel("number of turns")
+    plt.xlabel("Number of turns")
     plt.ylabel("% of total conversations")
-    plt.title("Distribution over turns")
     plt.ylim(0, 100)
     plt.tight_layout()
     plt.savefig(f"{save_prefix}_turns.png", dpi=220)
@@ -381,7 +389,6 @@ def plot_languages_stacked(stats: Dict, save_prefix: str):
     plt.bar(labels, user_counts, label="User")
     plt.bar(labels, grok_counts, bottom=user_counts, label="Grok", color="orange")
     plt.ylabel("Tweets")
-    plt.title("Language distribution")
     plt.xticks(rotation=30, ha="right")
     plt.legend()
     plt.tight_layout()
@@ -411,7 +418,6 @@ def plot_threads_over_weeks_stacked(stats: Dict, save_prefix: str):
     plt.bar(labels, counts)  # single solid series
     plt.xlabel("Week (start date)")
     plt.ylabel("Threads")
-    plt.title("Threads over time (weekly)")
     plt.xticks(rotation=60, ha="right")
     plt.tight_layout()
     plt.savefig(f"{save_prefix}_threads_per_week.png", dpi=220)
@@ -434,7 +440,6 @@ def plot_tweets_over_weeks_stacked(stats: Dict, save_prefix: str):
     plt.bar(labels, grok_counts, bottom=user_counts, label="Grok", color="orange")
     plt.xlabel("Week (start date)")
     plt.ylabel("Tweets")
-    plt.title("Tweets over time")
     plt.xticks(rotation=60, ha="right")
     plt.legend()
     plt.tight_layout()
