@@ -8,3 +8,5 @@ prac.py
 grok_data/
 PR.json
 logs/
+grok_data_COPY/
+output.json
