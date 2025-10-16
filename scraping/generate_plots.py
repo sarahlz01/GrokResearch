@@ -6,16 +6,19 @@ from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Tuple, Optional, Iterable
 import math
 import numpy as np
+from matplotlib import transforms as mtransforms
 
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+from matplotlib.ticker import FuncFormatter
+
 mpl.rcParams.update({
-    "font.size": 20,        # base
+    "font.size": 24,        # base
     "axes.titlesize": 20,
-    "axes.labelsize": 24,
-    "xtick.labelsize": 22,
-    "ytick.labelsize": 22,
-    "legend.fontsize": 20,
+    "axes.labelsize": 28,
+    "xtick.labelsize": 26,
+    "ytick.labelsize": 26,
+    "legend.fontsize": 26,
 })
 
 # ---------- Config ----------
@@ -428,6 +431,61 @@ def aggregate_stats(input_path: str) -> Dict:
     }
 
 
+def _human_int(v):
+    v = float(v)
+    absv = abs(v)
+    if absv >= 1_000_000_000:
+        return f"{v/1_000_000_000:.0f}B"
+    if absv >= 1_000_000:
+        return f"{v/1_000_000:.0f}M"
+    if absv >= 1_000:
+        return f"{v/1_000:.0f}K"
+    return f"{int(v):d}"
+
+def _apply_human_y(ax):
+    ax.yaxis.set_major_formatter(FuncFormatter(lambda x, pos: _human_int(x)))
+    
+def plot_tweets_over_weeks_stacked(stats: Dict, save_prefix: str):
+    """
+    Stacked weekly bars: TWEETS counted by tweet author.
+    X-axis shows only month starts (and 'Before Mar').
+    """
+    weeks = week_range_inclusive(START_DATE, END_DATE)
+    user_map: Dict[str, int] = stats.get("wk_tweets_user", {})
+    grok_map: Dict[str, int] = stats.get("wk_tweets_grok", {})
+
+    before_user = int(stats.get("before_mar_tweets_user", 0))
+    before_grok = int(stats.get("before_mar_tweets_grok", 0))
+    user_counts = [before_user] + [int(user_map.get(w.isoformat(), 0)) for w in weeks]
+    grok_counts = [before_grok] + [int(grok_map.get(w.isoformat(), 0)) for w in weeks]
+
+    # numeric x positions (0 = 'Before Mar', 1..N = weekly bars)
+    x = np.arange(len(weeks) + 1)
+
+    plt.figure(figsize=(14, 6))
+    plt.bar(x, user_counts, label="User")
+    plt.bar(x, grok_counts, bottom=user_counts, label="Grok", color="orange")
+
+    # month ticks: 0 ('Before Mar') + index where month changes
+    month_pos = []
+    month_lab = []
+    last_month = None
+    for i, w in enumerate(weeks, start=1):  # 0 is the 'pre-March' bar
+        if w < START_DATE:
+            continue  # don't label the Feb-24 week
+        if w.month != last_month:
+            month_pos.append(i)
+            month_lab.append(w.strftime("%b"))  # Mar, Apr, ...
+            last_month = w.month
+
+    plt.xticks(month_pos, month_lab, rotation=0, ha="center")
+    plt.xlabel("Month")
+    plt.ylabel("Tweets")
+    _apply_human_y(plt.gca())
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(f"{save_prefix}_tweets_per_week.png", dpi=220)
+    
 # ---------- Plotting ----------
 def plot_turns(stats: Dict, save_prefix: str):
     """Unchanged from your latest: percent of total (not stacked)."""
@@ -440,7 +498,7 @@ def plot_turns(stats: Dict, save_prefix: str):
     plt.bar(xs, ys)
     plt.xlabel("Number of turns")
     plt.ylabel("% of total conversations")
-    plt.ylim(0, 100)
+    plt.ylim(0, 50)
     plt.tight_layout()
     plt.savefig(f"{save_prefix}_turns.png", dpi=220)
 
@@ -486,15 +544,26 @@ def plot_languages_stacked(stats: Dict, save_prefix: str):
         user_counts.append(remainder_user)
         grok_counts.append(remainder_grok)
 
-    # Plot stacked counts (legend: User / Grok; Grok is orange)
-    plt.figure(figsize=(12, 6))
-    plt.bar(labels, user_counts, label="User")
-    plt.bar(labels, grok_counts, bottom=user_counts, label="Grok", color="orange")
-    plt.ylabel("Tweets")
-    plt.xticks(rotation=30, ha="right")
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(f"{save_prefix}_languages.png", dpi=220)
+     # --- plot ---
+    fig, ax = plt.subplots(figsize=(12, 6))
+    ax.bar(labels, user_counts, label="User")
+    ax.bar(labels, grok_counts, bottom=user_counts, label="Grok", color="orange")
+    ax.set_ylabel("Tweets")
+    _apply_human_y(ax)
+
+    # Normal tick styling
+    ax.set_xticks(range(len(labels)))
+    ax.set_xticklabels(labels, rotation=30, ha="right")
+
+    # >>> Nudge tick labels a few pixels to the RIGHT <<<
+    dx_pts = 18  # change to 2/6/etc to taste
+    offset = mtransforms.ScaledTranslation(dx_pts / 72.0, 0.0, fig.dpi_scale_trans)
+    for tick in ax.get_xticklabels():
+        tick.set_transform(tick.get_transform() + offset)
+
+    ax.legend()
+    fig.tight_layout()
+    fig.savefig(f"{save_prefix}_languages.png", dpi=220)
 
 
 def _week_labels() -> List[str]:
@@ -520,32 +589,62 @@ def plot_threads_over_weeks_stacked(stats: Dict, save_prefix: str):
     plt.bar(labels, counts)  # single solid series
     plt.xlabel("Week (start date)")
     plt.ylabel("Threads")
+    _apply_human_y(plt.gca())
     plt.xticks(rotation=90, ha="center")
     plt.tight_layout()
     plt.savefig(f"{save_prefix}_threads_per_week.png", dpi=220)
 
 
-def plot_tweets_over_weeks_stacked(stats: Dict, save_prefix: str):
+def plot_engagement_totals(stats: Dict, save_prefix: str, use_log_scale: bool = True):
     """
-    Stacked weekly bars: TWEETS counted by tweet author.
+    Compare AVERAGE engagement per tweet for User vs Grok.
+    Uses stats['engagement']['sums'] and ['counts'] to compute means.
     """
-    weeks = week_range_inclusive(START_DATE, END_DATE)
-    user_map: Dict[str, int] = stats.get("wk_tweets_user", {})
-    grok_map: Dict[str, int] = stats.get("wk_tweets_grok", {})
+    eng = stats.get("engagement", {})
+    metrics: List[str] = list(eng.get("metrics", []))
 
-    labels = _week_labels()
-    user_counts = [int(stats.get("before_mar_tweets_user", 0))] + [int(user_map.get(w.isoformat(), 0)) for w in weeks]
-    grok_counts = [int(stats.get("before_mar_tweets_grok", 0))] + [int(grok_map.get(w.isoformat(), 0)) for w in weeks]
+    user = (eng.get("user") or {})
+    grok = (eng.get("grok") or {})
+    user_sums: Dict[str, int] = user.get("sums", {}) or {}
+    grok_sums: Dict[str, int] = grok.get("sums", {}) or {}
+    user_counts: Dict[str, int] = user.get("counts", {}) or {}
+    grok_counts: Dict[str, int] = grok.get("counts", {}) or {}
+
+    if not metrics:
+        print("No engagement metrics found in stats['engagement'].")
+        return
+
+    # Averages = sums / counts (guard divide-by-zero)
+    def _avg(sums: Dict[str, int], counts: Dict[str, int]) -> List[float]:
+        return [
+            (float(sums.get(m, 0)) / max(int(counts.get(m, 0)), 1))
+            for m in metrics
+        ]
+
+    u_vals = _avg(user_sums, user_counts)
+    g_vals = _avg(grok_sums, grok_counts)
+
+    x = list(range(len(metrics)))
+    width = 0.45
 
     plt.figure(figsize=(14, 6))
-    plt.bar(labels, user_counts, label="User")
-    plt.bar(labels, grok_counts, bottom=user_counts, label="Grok", color="orange")
-    plt.xlabel("Week (start date)")
-    plt.ylabel("Tweets")
-    plt.xticks(rotation=90, ha="center")
+    # User (default), Grok (orange), side-by-side
+    plt.bar([i - width/2 for i in x], u_vals, width=width, label="User")
+    plt.bar([i + width/2 for i in x], g_vals, width=width, label="Grok", color="orange")
+
+    plt.xlabel("Engagement metric")
+    plt.ylabel("Average per tweet")
+    _apply_human_y(plt.gca())  # 1.2K, 3.4M formatting
+    plt.xticks(x, metrics, rotation=0)
+    if use_log_scale:
+        plt.yscale("log")  # optional: heavy tails still possible across metrics
+        plt.ylabel("Avg per tweet (log scale)")
     plt.legend()
     plt.tight_layout()
-    plt.savefig(f"{save_prefix}_tweets_per_week.png", dpi=220)
+    plt.savefig(f"{save_prefix}_eng_avgs.png", dpi=220)
+    plt.close()
+
+
 
 
 def _format_bin_labels(edges: List[int]) -> List[str]:
@@ -565,50 +664,7 @@ def _format_bin_labels(edges: List[int]) -> List[str]:
     labels.append(f"{edges[-1]}+")
     return labels
 
-def plot_engagement_totals(stats: Dict, save_prefix: str, use_log_scale: bool = True):
-    """
-    Compare summed engagement totals for User vs Grok.
-    Produces one figure with grouped bars per metric + an 'ALL' total.
-    Requires stats['engagement'] with 'metrics' and per-author 'sums'.
-    """
-    eng = stats.get("engagement", {})
-    metrics: List[str] = list(eng.get("metrics", []))
-    user_sums: Dict[str, int] = (eng.get("user", {}) or {}).get("sums", {}) or {}
-    grok_sums: Dict[str, int] = (eng.get("grok", {}) or {}).get("sums", {}) or {}
 
-    if not metrics:
-        print("No engagement metrics found in stats['engagement'].")
-        return
-
-    # Build sequences in a stable order
-    u_vals = [int(user_sums.get(m, 0)) for m in metrics]
-    g_vals = [int(grok_sums.get(m, 0)) for m in metrics]
-
-    # Add overall "ALL" totals across all metrics
-    u_all = sum(u_vals)
-    g_all = sum(g_vals)
-    metrics_plus = metrics + ["ALL"]
-    u_vals_plus = u_vals + [u_all]
-    g_vals_plus = g_vals + [g_all]
-
-    x = list(range(len(metrics_plus)))
-    width = 0.45
-
-    plt.figure(figsize=(14, 6))
-    # User (default), Grok (orange), side-by-side
-    plt.bar([i - width/2 for i in x], u_vals_plus, width=width, label="User")
-    plt.bar([i + width/2 for i in x], g_vals_plus, width=width, label="Grok", color="orange")
-
-    plt.xlabel("Engagement metric")
-    plt.ylabel("Total (sum across tweets)")
-    plt.xticks(x, metrics_plus, rotation=0)
-    if use_log_scale:
-        plt.yscale("log")  # handles huge 'views' vs smaller metrics
-        plt.ylabel("Total (log scale)")
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(f"{save_prefix}_eng_totals.png", dpi=220)
-    plt.close()
 
 
 # ---------- I/O ----------
