@@ -614,6 +614,7 @@ def plot_engagement_totals(stats: Dict, save_prefix: str, use_log_scale: bool = 
         print("No engagement metrics found in stats['engagement'].")
         return
 
+
     # Averages = sums / counts (guard divide-by-zero)
     def _avg(sums: Dict[str, int], counts: Dict[str, int]) -> List[float]:
         return [
@@ -623,6 +624,8 @@ def plot_engagement_totals(stats: Dict, save_prefix: str, use_log_scale: bool = 
 
     u_vals = _avg(user_sums, user_counts)
     g_vals = _avg(grok_sums, grok_counts)
+    print(f"U_AVG: {u_vals}")
+    print(f"G_AVG: {g_vals}")
 
     x = list(range(len(metrics)))
     width = 0.45
