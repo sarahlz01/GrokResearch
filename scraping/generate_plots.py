@@ -124,257 +124,170 @@ def normalize_lang_code(code: str) -> Optional[str]:
     # Regular languages
     return LANGUAGE_LABELS.get(c, c.upper())  # fallback: show code uppercased
 
-# ---------- Engagement helpers (surgical additions) ----------
-# Engagement metrics tracked for distribution (human vs LLM)
 ENG_METRICS = ("views", "likes", "reposts", "replies", "quotes", "bookmarks")
+ENG_BINS = [0,1,2,5,10,20,50,100,200,500,1_000,2_000,5_000,10_000,50_000,100_000,1_000_000]
 
-# Heavy-tail-friendly histogram edges (inclusive left, exclusive right; last is [last, +inf))
-ENG_BINS = [0, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1_000, 2_000, 5_000,
-            10_000, 50_000, 100_000, 1_000_000]
-
-def _to_int(x) -> int:
-    try:
-        return int(x)
-    except Exception:
-        try:
-            return int(float(x))
-        except Exception:
-            return 0
+def _to_int(x): 
+    try: return int(x)
+    except: 
+        try: return int(float(x))
+        except: return 0
 
 def _extract_engagement(t: dict) -> dict:
-    """
-    Normalize engagement fields from various tweet shapes:
-      - v2 raw: t['public_metrics'] = {like_count, reply_count, retweet_count, quote_count, impression_count, ...}
-      - cleaned/legacy: likeCount, replyCount, retweetCount, quoteCount, bookmarkCount, views/viewCount
-    Returns ints for: views, likes, replies, quotes, reposts(=retweets+quotes), bookmarks.
-    """
     m = t.get("metrics") or t.get("public_metrics") or {}
-
-    # Views / impressions
-    views = (
-        t.get("views")
-        or m.get("impression_count")
-        or m.get("views")
-        or t.get("viewCount")
-        or 0
-    )
-
+    views = t.get("views") or m.get("impression_count") or m.get("views") or t.get("viewCount") or 0
     likes = t.get("likeCount") or m.get("like_count") or 0
     replies = t.get("replyCount") or m.get("reply_count") or t.get("commentCount") or 0
     retweets = t.get("retweetCount") or m.get("retweet_count") or 0
     quotes = t.get("quoteCount") or m.get("quote_count") or 0
     bookmarks = t.get("bookmarkCount") or m.get("bookmark_count") or 0
-
     return {
-        "views": _to_int(views),
-        "likes": _to_int(likes),
-        "replies": _to_int(replies),
-        "quotes": _to_int(quotes),
-        "reposts": _to_int(retweets) + _to_int(quotes),  # derived
-        "bookmarks": _to_int(bookmarks),
+        "views": _to_int(views), "likes": _to_int(likes), "replies": _to_int(replies),
+        "quotes": _to_int(quotes), "reposts": _to_int(retweets)+_to_int(quotes), "bookmarks": _to_int(bookmarks)
     }
 
-def _empty_hist():
-    """metric -> zeroed histogram list for ENG_BINS."""
-    return {m: [0] * len(ENG_BINS) for m in ENG_METRICS}
+def _empty_hist(): return {m:[0]*len(ENG_BINS) for m in ENG_METRICS}
+def _bin_index(v:int)->int: 
+    for i in range(len(ENG_BINS)-1):
+        if ENG_BINS[i]<=v<ENG_BINS[i+1]: return i
+    return len(ENG_BINS)-1
 
-def _bin_index(v: int) -> int:
-    for i in range(len(ENG_BINS) - 1):
-        if ENG_BINS[i] <= v < ENG_BINS[i + 1]:
-            return i
-    return len(ENG_BINS) - 1
-
-def _update_engagement_aggregates(agg_sums: dict, agg_counts: dict, agg_hists: dict, metrics: dict):
-    """Accumulate sums, counts, and histograms for one tweet's metrics."""
+def _update_engagement_aggregates(agg_sums,agg_counts,agg_hists,metrics):
     for m in ENG_METRICS:
-        val = _to_int(metrics.get(m, 0))
-        agg_sums[m] += val
-        agg_counts[m] += 1
-        agg_hists[m][_bin_index(val)] += 1
+        val=_to_int(metrics.get(m,0))
+        agg_sums[m]+=val
+        agg_counts[m]+=1
+        agg_hists[m][_bin_index(val)]+=1
 
-# ---------- Utilities ----------
-def parse_date_safe(s: Optional[str]) -> Optional[datetime]:
-    if not s:
-        return None
+def parse_date_safe(s):
+    if not s: return None
     try:
-        dt = datetime.strptime(s, TWITTER_DATE_FMT)
-        if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=timezone.utc)
+        dt=datetime.strptime(s,TWITTER_DATE_FMT)
+        if dt.tzinfo is None: dt=dt.replace(tzinfo=timezone.utc)
         return dt
-    except Exception:
-        return None
+    except: return None
 
+def week_start(dt):
+    if dt.tzinfo is None: dt=dt.replace(tzinfo=timezone.utc)
+    d=dt-timedelta(days=dt.weekday())
+    return d.replace(hour=0,minute=0,second=0,microsecond=0)
 
-def week_start(dt: datetime) -> datetime:
-    """Return Monday 00:00Z of dt's ISO week."""
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
-    d = dt - timedelta(days=dt.weekday())
-    return d.replace(hour=0, minute=0, second=0, microsecond=0)
-
-
-def week_range_inclusive(start_dt: datetime, end_dt: datetime) -> List[datetime]:
-    start = week_start(start_dt)
-    end   = week_start(end_dt)
-    cur = start
-    out = []
-    while cur <= end:
+def week_range_inclusive(start_dt,end_dt):
+    start=week_start(start_dt); end=week_start(end_dt)
+    cur=start; out=[]
+    while cur<=end:
         out.append(cur)
-        cur += timedelta(days=7)
+        cur+=timedelta(days=7)
     return out
 
-
-def is_grok_tweet(t: dict) -> bool:
-    # Prefer raw author.id check; fallback to cleaned authorName sentinel.
-    author = (t.get("author") or {})
-    if str(author.get("id")) == GROK_USER_ID:
-        return True
-    if t.get("authorName") == "<ASSISTANT>":
-        return True
+def is_grok_tweet(t):
+    author=(t.get("author") or {})
+    if str(author.get("id"))==GROK_USER_ID: return True
+    if t.get("authorName")=="<ASSISTANT>": return True
     return False
 
-
-def load_json_list_stream(path: str) -> Iterable[dict]:
-    """Stream a top-level JSON array from disk if ijson is available; else load fully."""
+def load_json_list_stream(path):
     try:
-        import ijson  # type: ignore
-        with open(path, "r", encoding="utf-8") as f:
-            for item in ijson.items(f, "item"):
-                yield item
+        import ijson
+        with open(path,"r",encoding="utf-8") as f:
+            for item in ijson.items(f,"item"): yield item
         return
-    except Exception:
-        pass
-    with open(path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-    for item in data or []:
-        yield item
+    except: pass
+    with open(path,"r",encoding="utf-8") as f: data=json.load(f)
+    for item in data or []: yield item
 
-
-def iter_conversations(path: str) -> Iterable[dict]:
-    yield from load_json_list_stream(path)
-
-
-def iter_threads(path: str) -> Iterable[dict]:
+def iter_conversations(path): yield from load_json_list_stream(path)
+def iter_threads(path):
     for conv in iter_conversations(path):
-        for th in conv.get("threads", []) or []:
-            yield th
-
-
-def majority_language_for_conversation(conv: dict) -> str:
-    """(Kept for totals/compat) Majority language inside a conversation."""
-    counts = Counter()
-    for th in conv.get("threads", []) or []:
-        for t in th.get("tweets", []) or []:
-            lang = (
-                t.get("lang")
-                or t.get("language")
-                or (t.get("author") or {}).get("lang")
-                or "Other"
-            )
-            counts[str(lang)] += 1
-    return counts.most_common(1)[0][0] if counts else "Other"
-
+        for th in conv.get("threads",[]) or []: yield th
 
 # ---------- Aggregation ----------
-def aggregate_stats(input_path: str) -> Dict:
-    """
-    Build all stats in one pass (streamed):
-      - language tweet counts split by author (user vs grok)
-      - turn buckets (2..10+), percent plotted later (unchanged)
-      - weekly THREADS/time split by last author (user/grok), + 'Before Mar'
-      - weekly TWEETS/time split by author (user/grok), + 'Before Mar'
-      - engagement distribution across tweet types (user vs LLM)
-    """
-    # (A) Conversations total + (legacy) majority language per conversation
-    total_conversations = 0
-    conv_language_counts = Counter()
-    for conv in iter_conversations(input_path):
-        total_conversations += 1
-        conv_language_counts[majority_language_for_conversation(conv)] += 1
+def aggregate_stats(input_path:str)->Dict:
+    total_conversations=0
+    conv_language_counts=Counter()
+    complete_threads=0
+    incomplete_threads=0
 
-    # (B) Turn distribution for threads (keep as-is; not stacked)
-    turn_buckets = Counter()  # keys: "2".."9","10+"
-    total_threads = 0
+    for conv in iter_conversations(input_path):
+        total_conversations+=1
+        conv_language_counts["lang:"+str(conv.get("conversationId"))]=1
+        for th in conv.get("threads",[]) or []:
+            if th.get("incomplete_thread") or th.get("has_missing_parent"):
+                incomplete_threads+=1
+            else:
+                complete_threads+=1
+
+    turn_buckets=Counter()
+    total_threads=0
+    for th in iter_threads(input_path):
+        n=len(th.get("tweets",[]) or [])
+        if n<=1: continue
+        total_threads+=1
+        if n>=10: turn_buckets["10+"]+=1
+        else: turn_buckets[str(n)]+=1
+    # --- NEW: collect tweet counts per thread for std computation ---
+    all_thread_lengths = []
     for th in iter_threads(input_path):
         n = len(th.get("tweets", []) or [])
-        if n <= 1:
-            continue
-        total_threads += 1
-        if n >= 10:
-            turn_buckets["10+"] += 1
-        else:
-            turn_buckets[str(n)] += 1
+        all_thread_lengths.append(n)
+    thread_tweetcount_std = float(np.std(all_thread_lengths)) if all_thread_lengths else 0.0
 
-    # (C) Language tweet counts split by author
-    lang_user = Counter()
-    lang_grok = Counter()
+
+    lang_user=Counter(); lang_grok=Counter()
     for conv in iter_conversations(input_path):
-        for th in conv.get("threads", []) or []:
-            for t in th.get("tweets", []) or []:
-                raw_lang = (
-                    t.get("lang")
-                    or t.get("language")
-                    or (t.get("author") or {}).get("lang")
-                    or "und"
-                )
-                label = normalize_lang_code(raw_lang)
-                if label is None:
-                    continue  # drop non-linguistic if configured
-                if is_grok_tweet(t):
-                    lang_grok[label] += 1
-                else:
-                    lang_user[label] += 1
+        for th in conv.get("threads",[]) or []:
+            for t in th.get("tweets",[]) or []:
+                raw_lang=t.get("lang") or t.get("language") or (t.get("author") or {}).get("lang") or "und"
+                label=normalize_lang_code(raw_lang)
+                if label is None: continue
+                if is_grok_tweet(t): lang_grok[label]+=1
+                else: lang_user[label]+=1
 
-    # (D) Weekly THREADS/time split by last author
-    wk_threads_user = Counter()
-    wk_threads_grok = Counter()
-    before_mar_threads_user = 0
-    before_mar_threads_grok = 0
+    wk_threads_user=Counter(); wk_threads_grok=Counter()
+    before_mar_threads_user=0; before_mar_threads_grok=0
     for th in iter_threads(input_path):
-        tweets = th.get("tweets", []) or []
-        if not tweets:
-            continue
-        # determine last tweet and date
-        dated = [(parse_date_safe(t.get("createdAt")), t) for t in tweets]
-        dated = [(d, t) for d, t in dated if d]
-        if not dated:
-            continue
-        last_dt, last_t = max(dated, key=lambda p: p[0])
-        is_g = is_grok_tweet(last_t)
-        if last_dt < START_DATE:
-            if is_g:
-                before_mar_threads_grok += 1
-            else:
-                before_mar_threads_user += 1
-        elif last_dt <= END_DATE:
-            wk = week_start(last_dt).isoformat()
-            if is_g:
-                wk_threads_grok[wk] += 1
-            else:
-                wk_threads_user[wk] += 1
-        # > END_DATE ignored
+        tweets=th.get("tweets",[]) or []
+        if not tweets: continue
+        dated=[(parse_date_safe(t.get("createdAt")),t) for t in tweets]
+        dated=[(d,t) for d,t in dated if d]
+        if not dated: continue
+        last_dt,last_t=max(dated,key=lambda p:p[0])
+        is_g=is_grok_tweet(last_t)
+        if last_dt<START_DATE:
+            if is_g: before_mar_threads_grok+=1
+            else: before_mar_threads_user+=1
+        elif last_dt<=END_DATE:
+            wk=week_start(last_dt).isoformat()
+            if is_g: wk_threads_grok[wk]+=1
+            else: wk_threads_user[wk]+=1
 
-    # (E) Weekly TWEETS/time split by author
-    wk_tweets_user = Counter()
-    wk_tweets_grok = Counter()
-    before_mar_tweets_user = 0
-    before_mar_tweets_grok = 0
-
-    # Engagement aggregates (user vs grok)
-    eng_user_sums = defaultdict(int)
-    eng_grok_sums = defaultdict(int)
-    eng_user_counts = defaultdict(int)
-    eng_grok_counts = defaultdict(int)
-    eng_user_hists = _empty_hist()
-    eng_grok_hists = _empty_hist()
+    wk_tweets_user=Counter(); wk_tweets_grok=Counter()
+    before_mar_tweets_user=0; before_mar_tweets_grok=0
+    eng_user_sums=defaultdict(int); eng_grok_sums=defaultdict(int)
+    eng_user_counts=defaultdict(int); eng_grok_counts=defaultdict(int)
+    eng_user_hists=_empty_hist(); eng_grok_hists=_empty_hist()
+    eng_user_vals=defaultdict(list); eng_grok_vals=defaultdict(list)
 
     for conv in iter_conversations(input_path):
         for th in conv.get("threads", []) or []:
             for t in th.get("tweets", []) or []:
+                # 1) Author & engagement always counted (even if no createdAt)
+                is_g = is_grok_tweet(t)
+                em = _extract_engagement(t)
+                if is_g:
+                    _update_engagement_aggregates(eng_grok_sums, eng_grok_counts, eng_grok_hists, em)
+                    for m, v in em.items():
+                        eng_grok_vals[m].append(v)
+                else:
+                    _update_engagement_aggregates(eng_user_sums, eng_user_counts, eng_user_hists, em)
+                    for m, v in em.items():
+                        eng_user_vals[m].append(v)
+
+                # 2) Time bucketing only if we have a valid date
                 dt = parse_date_safe(t.get("createdAt"))
                 if not dt:
                     continue
-                is_g = is_grok_tweet(t)
+
                 if dt < START_DATE:
                     if is_g:
                         before_mar_tweets_grok += 1
@@ -386,48 +299,37 @@ def aggregate_stats(input_path: str) -> Dict:
                         wk_tweets_grok[wk] += 1
                     else:
                         wk_tweets_user[wk] += 1
-                # > END_DATE ignored
 
-                # Engagement distribution (include all tweets; if you want to limit to Mar–Oct, indent under the elif above)
-                em = _extract_engagement(t)
-                if is_g:
-                    _update_engagement_aggregates(eng_grok_sums, eng_grok_counts, eng_grok_hists, em)
-                else:
-                    _update_engagement_aggregates(eng_user_sums, eng_user_counts, eng_user_hists, em)
+
+
+    # Compute new stats: std, median
+    def _std(vals): return float(np.std(vals)) if vals else 0.0
+    def _median(vals): return float(np.median(vals)) if vals else 0.0
+    eng_user_std={m:_std(eng_user_vals[m]) for m in ENG_METRICS}
+    eng_grok_std={m:_std(eng_grok_vals[m]) for m in ENG_METRICS}
+    eng_user_median={m:_median(eng_user_vals[m]) for m in ENG_METRICS}
+    eng_grok_median={m:_median(eng_grok_vals[m]) for m in ENG_METRICS}
+
+    completeness_ratio = complete_threads / max(complete_threads+incomplete_threads,1)
 
     return {
-        "totals": {
-            "conversations": total_conversations,
-            "threads": total_threads,
+        "totals":{"conversations":total_conversations,"threads":total_threads},
+        "turn_buckets":dict(turn_buckets),
+        "thread_tweetcount_std": thread_tweetcount_std,
+        "lang_user":dict(lang_user),"lang_grok":dict(lang_grok),
+        "wk_threads_user":dict(wk_threads_user),"wk_threads_grok":dict(wk_threads_grok),
+        "before_mar_threads_user":before_mar_threads_user,"before_mar_threads_grok":before_mar_threads_grok,
+        "wk_tweets_user":dict(wk_tweets_user),"wk_tweets_grok":dict(wk_tweets_grok),
+        "before_mar_tweets_user":before_mar_tweets_user,"before_mar_tweets_grok":before_mar_tweets_grok,
+        "thread_completeness":{"complete":complete_threads,"incomplete":incomplete_threads,"ratio":completeness_ratio},
+        "engagement":{
+            "bins":ENG_BINS,"metrics":ENG_METRICS,
+            "user":{"sums":dict(eng_user_sums),"counts":dict(eng_user_counts),"hists":eng_user_hists,
+                    "std":eng_user_std,"median":eng_user_median},
+            "grok":{"sums":dict(eng_grok_sums),"counts":dict(eng_grok_counts),"hists":eng_grok_hists,
+                    "std":eng_grok_std,"median":eng_grok_median},
         },
-        "turn_buckets": dict(turn_buckets),  # "2".."9","10+"
-        "conv_language_counts": dict(conv_language_counts),  # kept for reference
-        "lang_user": dict(lang_user),
-        "lang_grok": dict(lang_grok),
-        "wk_threads_user": dict(wk_threads_user),
-        "wk_threads_grok": dict(wk_threads_grok),
-        "before_mar_threads_user": before_mar_threads_user,
-        "before_mar_threads_grok": before_mar_threads_grok,
-        "wk_tweets_user": dict(wk_tweets_user),
-        "wk_tweets_grok": dict(wk_tweets_grok),
-        "before_mar_tweets_user": before_mar_tweets_user,
-        "before_mar_tweets_grok": before_mar_tweets_grok,
-        "window": {"start": START_DATE.isoformat(), "end": END_DATE.isoformat()},
-        # --- New engagement distribution output ---
-        "engagement": {
-            "bins": ENG_BINS,                 # histogram bin edges
-            "metrics": ENG_METRICS,           # metric names order
-            "user": {
-                "sums": dict(eng_user_sums),      # total per metric
-                "counts": dict(eng_user_counts),  # tweet count per metric
-                "hists": eng_user_hists,          # metric -> [bin counts...]
-            },
-            "grok": {
-                "sums": dict(eng_grok_sums),
-                "counts": dict(eng_grok_counts),
-                "hists": eng_grok_hists,
-            },
-        },
+        "window":{"start":START_DATE.isoformat(),"end":END_DATE.isoformat()},
     }
 
 
