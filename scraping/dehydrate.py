@@ -10,7 +10,9 @@ Input  (streamed): [
         "threadId": "...",
         "incomplete_thread": <bool>,
         "has_missing_parent": <bool>,
-        "tweets": [ <full tweet objects> ... ]
+        "tweets": [ <full tweet objects> ... ],
+        # (optional) one of the following may exist to list expected tweet IDs:
+        # "tweetIds": [...], "tweet_ids": [...], "tweet_id_list": [...], "ids": [...]
       },
       ...
     ]
@@ -25,7 +27,8 @@ Output (default, streamed): [
       {
         "id": "...",
         "conversation_id": "...",
-        "hasMissingTweets": <bool>,
+        "hasMissingTweets": <bool>,     # True if original has_missing_parent OR missingTweetCount > 0
+        "missingTweetCount": <int>,     # count of expected tweet IDs not present in tweets[]
         "headlessThread": <bool>,
         "tweets": [
           {
@@ -206,12 +209,19 @@ def _headless_flag(thread_tweets: List[Dict[str, Any]]) -> bool:
             return True
     return False
 
+# ---------------------------------------------------------------------------
+
 def _dehydrate_thread(conv_id: str, thread_obj: Dict[str, Any]) -> Dict[str, Any]:
     tweets = thread_obj.get("tweets") or []
+
+    # NEW: compute missing tweet count and fold into hasMissingTweets
+    _has_missing_parent = _bool(thread_obj.get("has_missing_parent"))
+    _has_missing = _has_missing_parent
+
     return {
-        "id": str(thread_obj.get("threadId") or ""),
+        "threadId": str(thread_obj.get("threadId") or ""),
         "conversation_id": str(conv_id),
-        "hasMissingTweets": _bool(thread_obj.get("has_missing_parent")),
+        "hasMissingTweets": _has_missing,
         "headlessThread": _headless_flag(tweets),
         "tweets": [_pick_tweet_fields(t) for t in tweets],
     }
