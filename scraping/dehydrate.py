@@ -74,7 +74,7 @@ import ijson
 
 # Reuse your Grok user id constant for isAssistant
 try:
-    from clean_threads import GROK_USER_ID  # uploaded file
+    from cleaning.clean_threads import GROK_USER_ID  # uploaded file
 except Exception:
     GROK_USER_ID = "1720665183188922368"  # fallback
 
@@ -181,7 +181,6 @@ def _pick_author_fields(a: Optional[Dict[str, Any]]) -> Dict[str, Any]:
 def _pick_tweet_fields(t: Dict[str, Any]) -> Dict[str, Any]:
     out = {
         "id": str(t.get("id")),
-        "url": t.get("url"),
         # %original_text and %*text are **hydration-only** → intentionally omitted here
         "retweetCount": _as_int(t.get("retweetCount")),
         "replyCount": _as_int(t.get("replyCount")),
