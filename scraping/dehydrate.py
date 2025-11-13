@@ -211,20 +211,60 @@ def _headless_flag(thread_tweets: List[Dict[str, Any]]) -> bool:
 
 # ---------------------------------------------------------------------------
 
+def _count_deleted_from_inreply(tweets: List[Dict[str, Any]]) -> int:
+    """
+    Count how many *distinct* inReplyToId values refer to tweets that are
+    not present in this thread.
+
+    Logic:
+      - Collect all tweet IDs in the thread.
+      - For each tweet, look at inReplyToId:
+          * ignore if empty / falsy
+          * if it's not in the thread's IDs, count that parent as "missing"
+      - Return number of unique missing parent IDs.
+    """
+    ids_in_thread = {
+        str(t.get("id"))
+        for t in (tweets or [])
+        if t.get("id") is not None
+    }
+
+    missing_parents: set[str] = set()
+    for t in tweets or []:
+        parent = t.get("inReplyToId") or ""
+        if not parent:
+            continue
+        parent_str = str(parent)
+        if parent_str not in ids_in_thread:
+            missing_parents.add(parent_str)
+
+    return len(missing_parents)
+
+
+# --- replace your existing _dehydrate_thread with this version ---
 def _dehydrate_thread(conv_id: str, thread_obj: Dict[str, Any]) -> Dict[str, Any]:
     tweets = thread_obj.get("tweets") or []
 
-    # NEW: compute missing tweet count and fold into hasMissingTweets
+    # valid = tweets we actually have in this thread
+    valid_count = len(tweets)
+
+    # deleted = parents referenced by inReplyToId that never appear as tweet ids
+    deleted_count = _count_deleted_from_inreply(tweets)
+
     _has_missing_parent = _bool(thread_obj.get("has_missing_parent"))
-    _has_missing = _has_missing_parent
+    # mark hasMissingTweets if either upstream flag is set OR we found missing parents
+    _has_missing = _has_missing_parent or (deleted_count > 0)
 
     return {
         "threadId": str(thread_obj.get("threadId") or ""),
         "conversation_id": str(conv_id),
         "hasMissingTweets": _has_missing,
         "headlessThread": _headless_flag(tweets),
+        "validTweetCount": valid_count,
+        "deletedTweetCount": deleted_count,
         "tweets": [_pick_tweet_fields(t) for t in tweets],
     }
+
 
 # ---------- Streaming I/O ----------
 
