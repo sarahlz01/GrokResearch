@@ -5,10 +5,10 @@ Hydrate a dehydrated dataset back to the full (released) schema.
 - Streams the dehydrated JSON (no SQLite).
 - For each thread, batches tweet IDs into a single /twitter/tweets call.
 - Reconstructs % fields:
-    %original_text  <- API 'text'
-    %*text          <- clean_threads.clean_text_with_map(...)
-    author %fields  <- username/name/description
-    entities %user_mentions
+    original_text  <- API 'text'
+    text           <- clean_threads.clean_text_with_map(...)
+    author fields  <- username/name/description
+    entities.user_mentions
 - Preserves computed flags and any existing (non-text) annotations.
 
 Run:
@@ -19,20 +19,15 @@ import argparse
 import os
 import json
 import logging
-import re
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Dict, List
 from setuplog import setup_logging
 
 import ijson
 
 # ---------------- Project-local imports (minimal reuse) ----------------
 
-# HTTP wrapper (headers/retries/logging) — reuses your existing behavior.
-
 from network.http import http_get                      # uploaded by you
 from cleaning.clean_objects_while_scraping import extract_items
-
-# Use your canonical cleaner + constants for text creation and assistant detection.
 from cleaning.clean_threads import clean_text_with_map, GROK_USER_ID  # uploaded by you
 
 # ---------------- Helpers ----------------
@@ -104,11 +99,12 @@ def build_hydrated_tweet(api_t: Dict[str, Any], dehydrated_t: Dict[str, Any], al
     """
     Merge the API tweet into the dehydrated shell to reconstruct the hydrated schema.
     Dehydrated carries counts/ids/lang/url; API supplies % fields + full entities/author.
+    Assumes api_t is a valid tweet dict (we skip if missing).
     """
     author = api_t.get("author") or {}
     entities = api_t.get("entities") or {}
 
-    # author section (% fields restored)
+    # author section (fields restored)
     # Use GROK_USER_ID for isAssistant when possible; fallback to username check if missing id.
     is_assistant = False
     if str(author.get("id")) == str(GROK_USER_ID):
@@ -129,11 +125,11 @@ def build_hydrated_tweet(api_t: Dict[str, Any], dehydrated_t: Dict[str, Any], al
         "isAssistant": is_assistant,
     }
 
-    # entity section (simple lists + %user_mentions)
+    # entity section (simple lists + user_mentions)
     ents_out = pick_simple_entities(entities)
     ents_out["user_mentions"] = pick_user_mentions(entities)
 
-    # % fields
+    # text fields
     original_text = api_t.get("text") or ""
     cleaned_text  = clean_text_with_map(original_text, alias_map)  # canonical cleaner
 
@@ -159,7 +155,7 @@ def build_hydrated_tweet(api_t: Dict[str, Any], dehydrated_t: Dict[str, Any], al
         "entities": ents_out,
     }
 
-    # pass through any existing (non-text) annotations from dehydrated
+    # pass through any existing annotations from dehydrated
     if "annotations" in dehydrated_t and isinstance(dehydrated_t["annotations"], dict):
         hydrated["annotations"] = dehydrated_t["annotations"]
 
@@ -182,35 +178,67 @@ def hydrate_thread(thread_obj: Dict[str, Any], alias_map: dict) -> Dict[str, Any
     For a single dehydrated thread:
       - batch GET /twitter/tweets with all tweet ids
       - rebuild all tweets in original order using api_map
+      - SKIP any tweets whose IDs are missing from the API response
+        (e.g., deleted, not found, or otherwise absent).
     """
     dehy_tweets: List[Dict[str, Any]] = thread_obj.get("tweets") or []
     ids_in_order = [str(t.get("id")) for t in dehy_tweets if t.get("id")]
     if not ids_in_order:
         return {
-            "id": str(thread_obj.get("id") or ""),
+            "threadId": str(thread_obj.get("threadId") or ""),
             "conversation_id": thread_obj.get("conversation_id"),
             "hasMissingTweets": bool(thread_obj.get("hasMissingTweets")),
             "headlessThread": bool(thread_obj.get("headlessThread")),
+            "validTweetCount": thread_obj.get("validTweetCount"),
+            "deletedTweetCount": thread_obj.get("deletedTweetCount"),
             "tweets": []
         }
 
     # One API call per thread with all tweet IDs
-    params = {"tweet_ids": ",".join(ids_in_order)}
-    page = http_get("/twitter/tweets", params=params, conversation_id=thread_obj.get("conversation_id"))
-    _kind, api_items = extract_items(page)   # returns list from {"tweets": [...]}
+    try:
+        params = {"tweet_ids": ",".join(ids_in_order)}
+        page = http_get("/twitter/tweets", params=params, conversation_id=thread_obj.get("conversation_id"))
+        _kind, api_items = extract_items(page)   # returns list from {"tweets": [...]}
+    except Exception as e:
+        logging.exception(
+            "Error hydrating thread %s (conversation %s) for ids=%s: %s",
+            thread_obj.get("threadId"),
+            thread_obj.get("conversation_id"),
+            ",".join(ids_in_order),
+            e,
+        )
+        api_items = []
+
     api_map = {str(t.get("id")): t for t in (api_items or []) if isinstance(t, dict) and t.get("id")}
 
     hydrated_tweets: List[Dict[str, Any]] = []
+    missing_ids: List[str] = []
+
     for dt in dehy_tweets:
         tid = str(dt.get("id"))
-        api_t = api_map.get(tid, {})
+        api_t = api_map.get(tid)
+        if not api_t:
+            # Tweet not returned by API (likely deleted or not found) → skip
+            missing_ids.append(tid)
+            continue
         hydrated_tweets.append(build_hydrated_tweet(api_t, dt, alias_map))
 
+    if missing_ids:
+        logging.warning(
+            "Skipped %d tweets in thread %s (conversation %s) because API returned no data for ids (showing up to 10): %s",
+            len(missing_ids),
+            thread_obj.get("threadId"),
+            thread_obj.get("conversation_id"),
+            ",".join(missing_ids[:10]),
+        )
+
     return {
-        "id": str(thread_obj.get("id") or ""),
+        "threadId": str(thread_obj.get("threadId") or ""),
         "conversation_id": thread_obj.get("conversation_id"),
         "hasMissingTweets": bool(thread_obj.get("hasMissingTweets")),
         "headlessThread": bool(thread_obj.get("headlessThread")),
+        "validTweetCount": thread_obj.get("validTweetCount"),
+        "deletedTweetCount": thread_obj.get("deletedTweetCount"),
         "tweets": hydrated_tweets
     }
 
@@ -248,8 +276,7 @@ def main():
     ap.add_argument("--out", dest="out_path", required=True, help="hydrated JSON output path")
     args = ap.parse_args()
 
-
-    # Set up logger with timestamped file under hydrationFiles/logs/
+    # Set up logger with timestamped file under hydration/logs/
     os.makedirs("hydration/logs", exist_ok=True)
     setup_logging(run_name="hydration", log_dir="hydration/logs", to_stdout=False)
     logging.info("🪣 Hydration starting...")
@@ -265,4 +292,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
