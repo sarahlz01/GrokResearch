@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import statistics as stats  # for median
 
 # ====== CONFIG ======
-INPUT_PATH = "./dehydrated.json"  # <- your file
+INPUT_PATH = "./hydration/dehydrated.json"  # <- your file
 ASSISTANT_NAME = "<ASSISTANT>"
 CUTOFF = 50  # for cropped views
 

@@ -1,74 +1,4 @@
 #!/usr/bin/env python3
-"""
-Dehydrate a thread-organized dataset to the RELEASE schema's *dehydrated* form.
-
-Input  (streamed): [
-  {
-    "conversationId": "...",
-    "threads": [
-      {
-        "threadId": "...",
-        "incomplete_thread": <bool>,
-        "has_missing_parent": <bool>,
-        "tweets": [ <full tweet objects> ... ],
-        # (optional) one of the following may exist to list expected tweet IDs:
-        # "tweetIds": [...], "tweet_ids": [...], "tweet_id_list": [...], "ids": [...]
-      },
-      ...
-    ]
-  },
-  ...
-]
-
-Output (default, streamed): [
-  {
-    "conversationId": "...",
-    "threads": [
-      {
-        "id": "...",
-        "conversation_id": "...",
-        "hasMissingTweets": <bool>,     # True if original has_missing_parent OR missingTweetCount > 0
-        "missingTweetCount": <int>,     # count of expected tweet IDs not present in tweets[]
-        "headlessThread": <bool>,
-        "tweets": [
-          {
-            "id": "...",
-            "url": "...",
-            "retweetCount": <int>,
-            "replyCount": <int>,
-            "likeCount": <int>,
-            "quoteCount": <int>,
-            "viewCount": <int>,
-            "createdAt": <str>,
-            "lang": <str>,
-            "bookmarkCount": <int>,
-            "isMediaOnly": <bool>,
-            "author": {
-              "isVerified": <bool>,
-              "isBlueVerified": <bool>,
-              "followers": <int>,
-              "following": <int>,
-              "isAssistant": <bool>
-            },
-            "entities": {
-              "hashtags": [<str>, ...],
-              "symbols":  [<str>, ...],
-              "urls":     [<str>, ...]
-            },
-            "annotations": { ... }     # if present in input
-          },
-          ...
-        ]
-      },
-      ...
-    ]
-  },
-  ...
-]
-
-Use --flat to emit a single flat array of threads instead of grouping by conversation.
-"""
-
 import argparse
 import json
 import re
@@ -202,12 +132,25 @@ def _pick_tweet_fields(t: Dict[str, Any]) -> Dict[str, Any]:
         out["annotations"] = t["annotations"]
     return out
 
-def _headless_flag(thread_tweets: List[Dict[str, Any]]) -> bool:
-    # True if any tweet indicates stop_reason == non_assistant_limit
+def _headless_flag(thread_tweets: List[Dict[str, Any]], conversation_id: str) -> bool:
+    """
+    A thread is headless if:
+      1. Any tweet has _stop_reason == "non_assistant_limit"   (your original heuristic)
+      OR
+      2. The conversation root tweet (id == conversation_id) is NOT present in the thread.
+    """
+    # --- Condition 1: your original rule ---
     for tw in thread_tweets or []:
         if tw.get("_stop_reason") == "non_assistant_limit":
             return True
+
+    # --- Condition 2: true headless thread detection ---
+    ids_present = {str(t.get("id")) for t in (thread_tweets or []) if t.get("id")}
+    if str(conversation_id) not in ids_present:
+        return True
+
     return False
+
 
 # ---------------------------------------------------------------------------
 
@@ -253,13 +196,13 @@ def _dehydrate_thread(conv_id: str, thread_obj: Dict[str, Any]) -> Dict[str, Any
 
     _has_missing_parent = _bool(thread_obj.get("has_missing_parent"))
     # mark hasMissingTweets if either upstream flag is set OR we found missing parents
-    _has_missing = _has_missing_parent or (deleted_count > 0)
+    _has_missing = _has_missing_parent or (deleted_count > 0) or _bool(thread_obj.get("tweet_counter_reached_150"))
 
     return {
         "threadId": str(thread_obj.get("threadId") or ""),
         "conversation_id": str(conv_id),
         "hasMissingTweets": _has_missing,
-        "headlessThread": _headless_flag(tweets),
+        "headlessThread": _headless_flag(tweets, conv_id),
         "validTweetCount": valid_count,
         "deletedTweetCount": deleted_count,
         "tweets": [_pick_tweet_fields(t) for t in tweets],
