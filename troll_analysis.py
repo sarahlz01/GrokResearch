@@ -45,19 +45,18 @@ NUMBER_OF_CHUNKS = 5
 @dataclass
 class AnalysisConfig:
     """Configuration for analysis parameters."""
-    # model: str = "gemini-2.5-pro"
-    model: str = "gemini-2.0-flash"
+    model: str = "gemini-2.5-pro" # change to pro
     fallback_models: List[str] = None  # Models to try if primary fails
     temperature: float = 0.1
-    max_retries: int = 2
+    max_retries: int = 1
     cache_enabled: bool = True
     rate_limit_delay: float = 1.0  # Seconds between API calls
     max_conversations: int = None  # Maximum conversations to process (None = all)
-    max_concurrent_tasks: int = 5
+    max_concurrent_tasks: int = 12
 
     def __post_init__(self):
         if self.fallback_models is None:
-            self.fallback_models = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash", "gemini-2.0-flash-lite"]
+            self.fallback_models = ["gemini-2.5-flash", "gemini-2.5-flash-preview", "gemini-2.5-flash-lite", "gemini-2.5-flash-lite-preview", "gemini-2.0-flash", "gemini-2.0-flash-lite"]
 
 
 # --- Utility Classes ---
@@ -932,92 +931,6 @@ class TrollAnalyzer:
             'original_conversation': conversation
         }
     
-    async def rerun_failed_analysis(self, failed_conversation: list) -> dict:
-        all_results = []
-        tasks = []
-        # loop through conversation, get  original conversation field and conv id
-
-        for conv in tqdm(failed_conversation, desc="Starting reanalysis"):
-            original_conversation = conv.get('origianl_conversation', {})
-            conv_id = conv.get('conversationId', 'unknown')
-
-            logger.info(f"Reanalyzing conversation {conv_id}")
-            exisiting_analysis = conv.get('analysis', {})
-            if exisiting_analysis.get('is_trolling') != 'yes':
-                logger.warning(f"Conversation {conv_id} is not marked as trolling, skipping reanalysis")
-                continue
-
-            tasks.append(self._reanalyze_single_failed_interaction(conv))
-
-        logger.info(f"Scheduled {len(tasks)} reanalysis tasks")
-        logger.info(f"Running tasks in parallel (concurrency: {self.config.max_concurrent_tasks})...")
-        
-        gather_start = time.time()
-        raw_results = await asyncio.gather(*tasks, return_exceptions=True)
-        gather_time = time.time() - gather_start
-        
-        logger.info(f"All reanalysis tasks completed in {gather_time:.2f}s")
-        
-        failed_tasks = 0
-        for result in tqdm(raw_results, desc="Processing Reanalysis Results"):
-            if isinstance(result, Exception):
-                failed_tasks += 1
-                logger.error(f"Reanalysis task failed with exception: {result}")
-                continue
-            
-            if result:
-                all_results.append(result)
-        
-        logger.info(f"Reanalysis complete: {len(all_results)} successful, {failed_tasks} failed")
-        return all_results
-    
-
-    async def _reanalyze_single_failed_interaction(self, failed_conv: Dict) -> Optional[Dict]:
-        """Reanalyzes a single failed trolling interaction."""
-        conv_id = failed_conv.get('conversationId', 'unknown')
-        logger.info(f"Starting reanalysis for conversation: {conv_id}")
-        
-        original_conv = failed_conv.get('original_conversation', {})
-        exisiting_analysis = failed_conv.get('analysis', {})
-
-        if 'messages' not in original_conv or not original_conv['messages']:
-            logger.warning(f"Conversation {conv_id} has no messages, skipping reanalysis")
-            return None
-        
-        try:
-            trolling_detection = {
-                'is_trolling': exisiting_analysis.get('is_trolling', 'yes'),
-                'trolling_confidence': exisiting_analysis.get('trolling_confidence', 5),
-                'trolling_intensity': exisiting_analysis.get('trolling_intensity', 5),
-                'topic': exisiting_analysis.get('topic', '')
-            }
-            logger.info(f"Exisiting trolling detection for {conv_id}: is_trolling={trolling_detection['is_trolling']}, ....")
-
-            logger.info(f"Performing detailed reanalysis for trolling conversation {conv_id}")
-            detailed_result = await self._analyze_trolling_tweet(original_conv)
-
-            if detailed_result:
-                logger.info(f"✅ Detailed reanalysis completed for {conv_id}")
-                trolling_detection.update(detailed_result)
-            else:
-                logger.warning(f"Detailed reanalysis returned None for {conv_id}")
-                pass
-
-            final_result = {
-                'conversationId': conv_id,
-                'analysis': trolling_detection,
-                'original_conversation': original_conv,
-                'renalyzed': True
-            }
-            logger.info(f"✅ Completed reanalysis for conversation {conv_id}")
-            return final_result
-        
-        except Exception as e:
-            logger.error(f"❌ Reanalysis failed for conversation {conv_id}: {e}")
-            logger.debug(f"Traceback: {traceback.format_exc()}")
-            return None
-
-    
     def generate_summary(self, processed_data: list) -> dict:
         """
         Analyzes processed interaction data to answer key research questions
@@ -1223,60 +1136,21 @@ def cleanup_duplicate_tweets(all_results: List[Dict]) -> List[Dict]:
     return cleaned_results
 
 
-async def analyze_troll_interactions(file_path: str, output_path: str, config: AnalysisConfig = None, max_conversations: int = None, chunk_id: int = None, rerun_failed: bool = False):
+async def analyze_troll_interactions(file_path: str, output_path: str, config: AnalysisConfig = None, max_conversations: int = None, chunk_id: int = None):
     """Main method to orchestrate the entire analysis workflow."""
     logger.info("="*80)
-    if rerun_failed:
-        logger.info("REANALYZING FAILED TROLLING CONVERSATIONS")
-    else:
-        logger.info("STARTING GROK TROLL ANALYSIS")
+    logger.info("STARTING GROK TROLL ANALYSIS")
     logger.info("="*80)
     logger.info(f"Input file: {file_path}")
     logger.info(f"Output path: {output_path}")
     logger.info(f"Max conversations: {max_conversations if max_conversations else 'All'}")
     logger.info(f"Chunk ID: {chunk_id if chunk_id else 'None (processing full dataset)'}")
-
-
     
     start_time = time.time()
     
     try:
         logger.info("Initializing analyzer...")
         analyzer = TrollAnalyzer(config)
-
-        if rerun_failed:
-            logger.info("Loading failed conversations for reanalysis...")
-            failed_data = EncodingHandler.load_json_with_encoding(file_path)
-
-            failed_conversations = failed_data.get('conversations', [])
-            logger.info(f"Found {len(failed_conversations)} failed conversations to reanalyze")
-
-            reanalyzed_results = await analyzer.rerun_failed_analysis(failed_conversations)
-
-            logger.info("Generating summary report for reanalyzed data...")
-            summary = analyzer.generate_summary(reanalyzed_results)
-
-            metadata = {
-                "total_reanalyzed_conversations": len(failed_conversations),
-                "successful_reanalyses": len(reanalyzed_results),
-                "failed_reanalyses": len(failed_conversations) - len(reanalyzed_results),
-                "processing_time_seconds": round(time.time() - start_time, 2),
-                'original_file': file_path
-            }
-
-            output = {
-                "summary": summary,
-                "analysis_results": reanalyzed_results,
-                "metadata": metadata
-            }
-
-            base, ext = os.path.splitext(output_path)
-            final_output_path = f"{base}_reanalyzed{ext}"
-
-            EncodingHandler.save_json_with_encoding(output, final_output_path)
-            logger.info(f"✅ Reanalysis complete! Results saved to: {final_output_path}")
-
-            return output
 
         trolling_conversations_detected = 0
 
@@ -1464,14 +1338,14 @@ if __name__ == "__main__":
         # default="grok_data/Grok_2025-04/output_CLEANED.json",
         # default="grok_data/Grok_2025-05/output_CLEANED.json",
         # default="grok_data/Grok_2025-06/output_CLEANED.json",
-        # default="grok_data/Grok_2025-09/output_CLEANED.json",
-        default="outputs/trolling_analysis_results/analysis_failed.json",
+        default="grok_data/Grok_2025-08/output_CLEANED.json",
+        # default="grok_data/trolling_1.json",
         help="Path to the JSON file containing tweet data (default: grok_data/data.json)"
     )
     parser.add_argument(
         "output_file",
         nargs='?',
-        default="outputs/trolling_analysis_results/",
+        default="outputs/trolling_analysis_results/trolling_analysis_2025_08/",
         help="Path to the input JSON file (default: troll_analysis_results.json)"
     )
     parser.add_argument("--max-conversations", type=int, default=None, help="Limit the number of conversations to process.")
@@ -1479,7 +1353,6 @@ if __name__ == "__main__":
     parser.add_argument("--no-cache", action="store_true", help="Disable caching of API results.")
     parser.add_argument("--clear-cache", action="store_true", help="Clear the cache before running the analysis.")
     parser.add_argument("--model", type=str, default="gemini-2.5-pro", help="Gemini model to use (default: gemini-1.5-flash)")
-    parser.add_argument("--rerun-failed", action="store_true", help="Rerun analysis only on previously failed conversations.")
     
     args = parser.parse_args()
 
@@ -1492,13 +1365,7 @@ if __name__ == "__main__":
     logger.info(f"  model: {args.model}")
     logger.info(f"  cache_enabled: {not args.no_cache}")
     logger.info(f"  clear_cache: {args.clear_cache}")
-    logger.info(f"  rerun_failed: {args.rerun_failed}")
     logger.info("="*80)
-
-    if args.rerun_failed and args.chunk_id is not None:
-        logger.error("Cannot use --rerun-failed with --chunk-id")
-        print("Error: --rerun-failed cannot be used with --chunk-id")
-        sys.exit(1)
 
     if args.chunk_id is not None and not (1 <= args.chunk_id <= NUMBER_OF_CHUNKS):
         logger.error(f"Invalid chunk_id: {args.chunk_id}. Must be between 1 and {NUMBER_OF_CHUNKS}")
@@ -1525,8 +1392,7 @@ if __name__ == "__main__":
             output_path=args.output_file,
             config=config,
             max_conversations=args.max_conversations,
-            chunk_id=args.chunk_id,
-            rerun_failed=args.rerun_failed
+            chunk_id=args.chunk_id
         ))
         
         total_time = time.time() - script_start
