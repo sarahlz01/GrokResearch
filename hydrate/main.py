@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from omegaconf import DictConfig 
 from setuplog import setup_logging
 import logging
-from network.scrape import run_streaming 
+from hydrate.network.do_hydrate import run_streaming 
 import time
 
 @dataclass
