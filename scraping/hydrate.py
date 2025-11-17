@@ -139,6 +139,7 @@ def build_hydrated_tweet(api_t: Dict[str, Any], dehydrated_t: Dict[str, Any], al
     # stitch final hydrated tweet
     hydrated = {
         "id": str(dehydrated_t.get("id")),
+        "inReplyToId": str(dehydrated_t.get("inReplyToId")),
         "url": dehydrated_t.get("url") or api_t.get("url"),
         "original_text": original_text,
         "text": cleaned_text,
@@ -166,11 +167,11 @@ def build_hydrated_tweet(api_t: Dict[str, Any], dehydrated_t: Dict[str, Any], al
 def iter_conversations(path: str):
     """
     Stream top-level array: yield conversation objects one-by-one.
-    Each object expected to have: {"conversationId": "...", "threads": [...]}
+    Each object expected to have: {"threads": [...]}
     """
     with open(path, "r", encoding="utf-8") as f:
         for conv in ijson.items(f, "item", use_float=True):
-            if isinstance(conv, dict) and "conversationId" in conv:
+            if isinstance(conv, dict):
                 yield conv
 
 def hydrate_thread(thread_obj: Dict[str, Any], alias_map: dict) -> Dict[str, Any]:
@@ -186,7 +187,7 @@ def hydrate_thread(thread_obj: Dict[str, Any], alias_map: dict) -> Dict[str, Any
     if not ids_in_order:
         return {
             "threadId": str(thread_obj.get("threadId") or ""),
-            "conversation_id": thread_obj.get("conversation_id"),
+            "conversationId": thread_obj.get("conversationId"),
             "hasMissingTweets": bool(thread_obj.get("hasMissingTweets")),
             "headlessThread": bool(thread_obj.get("headlessThread")),
             "validTweetCount": thread_obj.get("validTweetCount"),
@@ -197,13 +198,13 @@ def hydrate_thread(thread_obj: Dict[str, Any], alias_map: dict) -> Dict[str, Any
     # One API call per thread with all tweet IDs
     try:
         params = {"tweet_ids": ",".join(ids_in_order)}
-        page = http_get("/twitter/tweets", params=params, conversation_id=thread_obj.get("conversation_id"))
+        page = http_get("/twitter/tweets", params=params, conversation_id=thread_obj.get("conversationId"))
         _kind, api_items = extract_items(page)   # returns list from {"tweets": [...]}
     except Exception as e:
         logging.exception(
             "Error hydrating thread %s (conversation %s) for ids=%s: %s",
             thread_obj.get("threadId"),
-            thread_obj.get("conversation_id"),
+            thread_obj.get("conversationId"),
             ",".join(ids_in_order),
             e,
         )
@@ -228,13 +229,13 @@ def hydrate_thread(thread_obj: Dict[str, Any], alias_map: dict) -> Dict[str, Any
             "Skipped %d tweets in thread %s (conversation %s) because API returned no data for ids (showing up to 10): %s",
             len(missing_ids),
             thread_obj.get("threadId"),
-            thread_obj.get("conversation_id"),
+            thread_obj.get("conversationId"),
             ",".join(missing_ids[:10]),
         )
 
     return {
         "threadId": str(thread_obj.get("threadId") or ""),
-        "conversation_id": thread_obj.get("conversation_id"),
+        "conversationId": thread_obj.get("conversationId"),
         "hasMissingTweets": bool(thread_obj.get("hasMissingTweets")),
         "headlessThread": bool(thread_obj.get("headlessThread")),
         "validTweetCount": thread_obj.get("validTweetCount"),
@@ -251,7 +252,6 @@ def write_hydrated(in_path: str, out_path: str) -> None:
         out_f.write("[\n")
         first = True
         for conv in iter_conversations(in_path):
-            conv_id = conv.get("conversationId")
             threads = conv.get("threads") or []
 
             # Stable per-conversation alias map (ensures consistent <USER_n> across threads)
@@ -261,7 +261,7 @@ def write_hydrated(in_path: str, out_path: str) -> None:
             for th in threads:
                 hydrated_threads.append(hydrate_thread(th, alias_map))
 
-            out_obj = {"conversationId": conv_id, "threads": hydrated_threads}
+            out_obj = {"threads": hydrated_threads}
             if not first:
                 out_f.write(",\n")
             json.dump(out_obj, out_f, ensure_ascii=False, indent=2)

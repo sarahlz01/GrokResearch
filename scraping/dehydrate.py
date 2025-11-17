@@ -114,6 +114,7 @@ def _pick_author_fields(a: Optional[Dict[str, Any]]) -> Dict[str, Any]:
 def _pick_tweet_fields(t: Dict[str, Any]) -> Dict[str, Any]:
     out = {
         "id": str(t.get("id")),
+        "inReplyToId": str(t.get("inReplyToId")),
         # %original_text and %*text are **hydration-only** → intentionally omitted here
         "retweetCount": _as_int(t.get("retweetCount")),
         "replyCount": _as_int(t.get("replyCount")),
@@ -132,12 +133,12 @@ def _pick_tweet_fields(t: Dict[str, Any]) -> Dict[str, Any]:
         out["annotations"] = t["annotations"]
     return out
 
-def _headless_flag(thread_tweets: List[Dict[str, Any]], conversation_id: str) -> bool:
+def _headless_flag(thread_tweets: List[Dict[str, Any]], conversationId: str) -> bool:
     """
     A thread is headless if:
       1. Any tweet has _stop_reason == "non_assistant_limit"   (your original heuristic)
       OR
-      2. The conversation root tweet (id == conversation_id) is NOT present in the thread.
+      2. The conversation root tweet (id == conversationId) is NOT present in the thread.
     """
     # --- Condition 1: your original rule ---
     for tw in thread_tweets or []:
@@ -146,7 +147,7 @@ def _headless_flag(thread_tweets: List[Dict[str, Any]], conversation_id: str) ->
 
     # --- Condition 2: true headless thread detection ---
     ids_present = {str(t.get("id")) for t in (thread_tweets or []) if t.get("id")}
-    if str(conversation_id) not in ids_present:
+    if str(conversationId) not in ids_present:
         return True
 
     return False
@@ -200,7 +201,7 @@ def _dehydrate_thread(conv_id: str, thread_obj: Dict[str, Any]) -> Dict[str, Any
 
     return {
         "threadId": str(thread_obj.get("threadId") or ""),
-        "conversation_id": str(conv_id),
+        "conversationId": str(conv_id),
         "hasMissingTweets": _has_missing,
         "headlessThread": _headless_flag(tweets, conv_id),
         "validTweetCount": valid_count,
