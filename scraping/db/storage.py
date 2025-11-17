@@ -151,12 +151,21 @@ def load_checkpoint(conn: sqlite3.Connection, key: str) -> Optional[str]:
     row = cur.fetchone()
     return row[0] if row else None
 
+def tweet_exists(conn: sqlite3.Connection, tweet_id: str) -> bool:
+    """
+    Return True iff a tweet with this id exists in the DB.
+    """
+    if not tweet_id:
+        return False
+    cur = conn.execute("SELECT 1 FROM tweets WHERE id = ? LIMIT 1;", (tweet_id,))
+    return cur.fetchone() is not None
+
 
 from typing import Optional, Tuple
 import os
 import sqlite3
 
-def merge_databases(db1_path: str, db2_path: str, out_path: Optional[str] = None) -> Tuple[str, int, int]:
+def merge_databases(db1_path: str, db2_path: str, out_path: str="./grok_data_COPY/merged.sqlite3") -> Tuple[str, int, int]:
     """
     Merge two SQLite DBs (same schema as this module) into a new DB.
     Output name defaults to MERGED_{basename(db1)}_{basename(db2)}.sqlite3 (without extensions).
@@ -175,10 +184,6 @@ def merge_databases(db1_path: str, db2_path: str, out_path: Optional[str] = None
         # sanitize path separators just in case
         return b.replace(os.sep, "_")
 
-    if out_path is None:
-        out_name = f"MERGED_{_base(db1_path)}_{_base(db2_path)}.sqlite3"
-        out_dir = os.path.dirname(os.path.abspath(db1_path)) or "."
-        out_path = os.path.join(out_dir, out_name)
 
     # Make sure both sources are on the current schema (your init_db handles migrations/PRAGMAs)
     init_db(db1_path).close()

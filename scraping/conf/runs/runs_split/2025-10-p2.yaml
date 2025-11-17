@@ -11,9 +11,9 @@ hydra:
 
 date:
   year: 2025
-  month: 5
-  since_day: 1
-  until_day: 31
+  month: 10
+  since_day: 4
+  until_day: 7
 
 settings:
   handle: grok
@@ -25,9 +25,10 @@ settings:
   number_conversations: 300
   build_final_json: false
   out_path: grok_data/${date.year}-${date.month}-${date.since_day}to${date.until_day}.json
-  grok_db_outpath: grok_data/grok_2025_05.sqlite3
+  grok_db_outpath: grok_data/grok_2025_10/grok.sqlite3
 
 logging:
-  run_name: full
-  log_dir: logs/crawl_2025-05
+  run_name: p2
+
+  log_dir: logs/crawl_2025-10
   to_stdout: false

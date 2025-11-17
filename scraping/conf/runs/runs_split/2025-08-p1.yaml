@@ -13,7 +13,7 @@ date:
   year: 2025
   month: 8
   since_day: 1
-  until_day: 15
+  until_day: 3
 
 settings:
   handle: grok

@@ -8,3 +8,9 @@ prac.py
 grok_data/
 PR.json
 logs/
+grok_data_COPY/
+output.json
+output_CLEANED.json
+annotations/
+hydrated.json
+dehydrated.json
