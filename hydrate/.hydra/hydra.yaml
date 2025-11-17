@@ -12,15 +12,15 @@ hydra:
     params: null
   help:
     app_name: ${hydra.job.name}
-    header: '${hydra.help.app_name} is powered by Hydra.
+    header: "${hydra.help.app_name} is powered by Hydra.
 
-      '
-    footer: 'Powered by Hydra (https://hydra.cc)
+      "
+    footer: "Powered by Hydra (https://hydra.cc)
 
       Use --hydra-help to view Hydra specific help
 
-      '
-    template: '${hydra.help.header}
+      "
+    template: "${hydra.help.header}
 
       == Configuration groups ==
 
@@ -40,9 +40,9 @@ hydra:
 
       ${hydra.help.footer}
 
-      '
+      "
   hydra_help:
-    template: 'Hydra (${hydra.runtime.version})
+    template: "Hydra (${hydra.runtime.version})
 
       See https://hydra.cc for more info.
 
@@ -61,9 +61,9 @@ hydra:
       $HYDRA_CONFIG_GROUPS
 
 
-      Use ''--cfg hydra'' to Show the Hydra config.
+      Use '--cfg hydra' to Show the Hydra config.
 
-      '
+      "
     hydra_help: ???
   hydra_logging:
     version: 1
@@ -82,12 +82,12 @@ hydra:
   output_subdir: .hydra
   overrides:
     hydra:
-    - hydra.mode=RUN
+      - hydra.mode=RUN
     task: []
   job:
     name: main
     chdir: false
-    override_dirname: ''
+    override_dirname: ""
     id: ???
     num: ???
     config_name: 2025-09-p4
@@ -95,27 +95,27 @@ hydra:
     env_copy: []
     config:
       override_dirname:
-        kv_sep: '='
-        item_sep: ','
+        kv_sep: "="
+        item_sep: ","
         exclude_keys: []
   runtime:
     version: 1.3.2
-    version_base: '1.3'
-    cwd: /workspace/berat/GrokResearch/scraping
+    version_base: "1.3"
+    cwd: /workspace/berat/GrokResearch/hydrate
     config_sources:
-    - path: hydra.conf
-      schema: pkg
-      provider: hydra
-    - path: /workspace/berat/GrokResearch/scraping/conf
-      schema: file
-      provider: main
-    - path: /workspace/berat/GrokResearch/scraping/conf/runs/runs_split
-      schema: file
-      provider: command-line
-    - path: ''
-      schema: structured
-      provider: schema
-    output_dir: /workspace/berat/GrokResearch/scraping
+      - path: hydra.conf
+        schema: pkg
+        provider: hydra
+      - path: /workspace/berat/GrokResearch/hydrate/conf
+        schema: file
+        provider: main
+      - path: /workspace/berat/GrokResearch/hydrate/conf/runs/runs_split
+        schema: file
+        provider: command-line
+      - path: ""
+        schema: structured
+        provider: schema
+    output_dir: /workspace/berat/GrokResearch/hydrate
     choices:
       hydra/env: default
       hydra/callbacks: null
