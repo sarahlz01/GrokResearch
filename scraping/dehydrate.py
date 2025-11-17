@@ -249,7 +249,6 @@ def write_dehydrated(in_path: str, out_path: str, flat: bool = False) -> None:
                 if not dehydrated_threads:
                     continue
                 out_obj = {
-                    "conversationId": conv_id,
                     "threads": dehydrated_threads,
                 }
                 if not first_out:
