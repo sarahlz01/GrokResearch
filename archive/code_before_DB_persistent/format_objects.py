@@ -4,9 +4,9 @@ logging.getLogger(__name__)
 
 from typing import Dict, List, Optional, Set
 import json, os
-from scraping.db.storage import init_db
+from hydrate.db.storage import init_db
 
-from scraping.network.cleaning.translate_db import translate
+from hydrate.network.cleaning.translate_db import translate
 
 
 def format_time_utc(ts: str) -> str:

@@ -8,7 +8,7 @@ from typing import Dict, List, Optional, Tuple, Set
 import requests
 from dotenv import load_dotenv
 
-from scraping.network.cleaning.format_objects import build_query, save_json, build_conversation_objects_by_threads
+from hydrate.network.cleaning.format_objects import build_query, save_json, build_conversation_objects_by_threads
 
 
 load_dotenv()
