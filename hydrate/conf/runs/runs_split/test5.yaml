@@ -1,0 +1,33 @@
+defaults:
+  - override hydra/job_logging: disabled
+  - override hydra/hydra_logging: disabled
+  - _self_
+
+hydra:
+  run:
+    dir: .
+  job:
+    chdir: false
+
+date:
+  year: 2025
+  month: 8
+  since_day: 6
+  until_day: 9
+
+settings:
+  handle: grok
+  query_type: Latest
+  include_self_threads: false
+  include_quotes: false
+  include_retweets: false
+  block_hours: 12
+  number_conversations: 5
+  build_final_json: true
+  out_path: grok_data/${date.year}-${date.month}-${date.since_day}to${date.until_day}.json
+  grok_db_outpath: grok_data/test5/grok.sqlite3
+
+logging:
+  run_name: test-p5
+  log_dir: logs/crawl-test5
+  to_stdout: false
