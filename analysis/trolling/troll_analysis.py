@@ -434,9 +434,6 @@ class TrollAnalyzer:
             'topic': 'analysis_failed'
         }
     
-    # create fallbak detailed analysis
-
-    # create non-trolling analysis
 
     def _create_trolling_intent_prompt(self, conversation: Dict) -> str:
         """Constructs the prompt for the initial troll detection step."""
@@ -657,7 +654,7 @@ class TrollAnalyzer:
         logger.info(f"Conversation {conv_id} has {message_count} messages")
 
         if self.config.cache_enabled:
-            cached_result = self.cache.get(conversation, "troll_analysis")
+            cached_result = self.cache.get(conversation, "conversation_analysis")
             if cached_result:
                 logger.info(f"✅ Full analysis retrieved from cache for {conv_id}")
                 return cached_result
@@ -710,6 +707,12 @@ class TrollAnalyzer:
         conv_id = conversation.get('conversationId', 'unknown')
         logger.debug(f"Creating detailed analysis prompt for {conv_id}")
         prompt = self._create_detailed_analysis_prompt(conversation)
+
+        if self.config.cache_enabled:
+            cached_result = self.cache.get(conversation, "trolling_analysis")
+            if cached_result:
+                logger.info(f"✅ Full analysis retrieved from cache for {conv_id}")
+                return cached_result
         try:
             async with self.semaphore: 
                 logger.debug(f"Acquired semaphore for detailed analysis of {conv_id}")
