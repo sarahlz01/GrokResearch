@@ -22,7 +22,7 @@ class Orchestrator:
         self.storage = storage
         self.discussion_analyzer = discussion_analyzer
         
-        logger.info("Orchestrator initialized")
+        logger.info("Orchestrator initialized")                                                 
 
     def analyze_discussion_interactions(self, conversations: List[Dict], chunk_id: int) -> Dict:
         """Orchestrate the entire analysis workflow."""

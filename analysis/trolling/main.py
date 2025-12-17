@@ -52,12 +52,10 @@ def load_and_filter_conversations(storage: EncodingHandler, config: AnalysisConf
     total_loaded = len(all_conversations)
     logger.info(f"Loaded {total_loaded} conversations from file")
     
-    # Apply chunking if chunk_id is set
     if args.chunk_id is not None:
         chunk_size = total_loaded // config.number_of_chunks
         start_idx = (args.chunk_id - 1) * chunk_size
         
-        # Last chunk gets any remainder
         if args.chunk_id == config.number_of_chunks:
             end_idx = total_loaded
         else:

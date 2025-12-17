@@ -1,24 +1,24 @@
-2025-12-17 14:45:16,226 - __main__ - INFO - TROLL ANALYSIS PIPELINE - STARTING
-2025-12-17 14:45:16,226 - __main__ - INFO - Loading configuration...
-2025-12-17 14:45:16,226 - __main__ - INFO - Configuration loaded:
-2025-12-17 14:45:16,226 - __main__ - INFO - Input file: /home/gbemike/Documents/github/GrokResearch/grok_data/Grok_2025-03/output_CLEANED.json
-2025-12-17 14:45:16,226 - __main__ - INFO - Output path: /home/gbemike/Documents/github/GrokResearch/outputs/trolling_analysis_results/trolling_analysis_2025_10/
-2025-12-17 14:45:16,226 - __main__ - INFO - Model: gemini-2.0-flash
-2025-12-17 14:45:16,227 - __main__ - INFO - Max conversations: All
-2025-12-17 14:45:16,227 - __main__ - INFO - Chunk ID: 1
-2025-12-17 14:45:16,227 - __main__ - INFO - Number of chunks: 5
-2025-12-17 14:45:16,227 - __main__ - INFO - Cache enabled: True
-2025-12-17 14:45:16,227 - __main__ - INFO - Initializing components...
-2025-12-17 14:45:16,227 - cache - INFO - Initialized cache directory: /home/gbemike/Documents/github/GrokResearch/outputs/.trolling_analysis_cache
-2025-12-17 14:45:16,227 - __main__ - INFO - Clearing cache as requested...
-2025-12-17 14:45:16,227 - cache - INFO - Clearing cache...
-2025-12-17 14:45:16,355 - cache - INFO - Cache cleared: removed 5842 files
-2025-12-17 14:45:16,357 - storage - INFO - initialized encoding handler with file: /home/gbemike/Documents/github/GrokResearch/grok_data/Grok_2025-03/output_CLEANED.json
-2025-12-17 14:45:16,357 - storage - INFO - output directory: /home/gbemike/Documents/github/GrokResearch/outputs/trolling_analysis_results/trolling_analysis_2025_10
-2025-12-17 14:45:16,427 - build_analysis - INFO - Initializing TrollAnalyzer
-2025-12-17 14:45:16,471 - build_analysis - INFO - Primary model: gemini-2.0-flash
-2025-12-17 14:45:16,471 - build_analysis - INFO - Max retries: 3
-2025-12-17 14:45:16,471 - build_analysis - INFO - TrollAnalyzer initialization complete
-2025-12-17 14:45:16,471 - orchestrator - INFO - Orchestrator initialized
-2025-12-17 14:45:16,471 - __main__ - INFO - Loading conversations from: /home/gbemike/Documents/github/GrokResearch/grok_data/Grok_2025-03/output_CLEANED.json
-2025-12-17 14:45:16,471 - storage - INFO - loading json file: /home/gbemike/Documents/github/GrokResearch/grok_data/Grok_2025-03/output_CLEANED.json
+2025-12-17 17:34:15,168 - __main__ - INFO - TROLL ANALYSIS PIPELINE - STARTING
+2025-12-17 17:34:15,169 - __main__ - INFO - Loading configuration...
+2025-12-17 17:34:15,169 - __main__ - INFO - Configuration loaded:
+2025-12-17 17:34:15,169 - __main__ - INFO - Input file: /home/gbemike/Documents/github/GrokResearch/grok_data/Grok_2025-03/output_CLEANED.json
+2025-12-17 17:34:15,170 - __main__ - INFO - Output path: /home/gbemike/Documents/github/GrokResearch/outputs/trolling_analysis_results/trolling_analysis_2025_10/
+2025-12-17 17:34:15,170 - __main__ - INFO - Model: gemini-2.0-flash
+2025-12-17 17:34:15,170 - __main__ - INFO - Max conversations: All
+2025-12-17 17:34:15,170 - __main__ - INFO - Chunk ID: None
+2025-12-17 17:34:15,170 - __main__ - INFO - Number of chunks: 5
+2025-12-17 17:34:15,170 - __main__ - INFO - Cache enabled: True
+2025-12-17 17:34:15,170 - __main__ - INFO - Initializing components...
+2025-12-17 17:34:15,170 - cache - INFO - Initialized cache directory: /home/gbemike/Documents/github/GrokResearch/outputs/.trolling_analysis_cache
+2025-12-17 17:34:15,170 - __main__ - INFO - Clearing cache as requested...
+2025-12-17 17:34:15,170 - cache - INFO - Clearing cache...
+2025-12-17 17:34:15,191 - cache - INFO - Cache cleared: removed 0 files
+2025-12-17 17:34:15,191 - storage - INFO - initialized encoding handler with file: /home/gbemike/Documents/github/GrokResearch/grok_data/Grok_2025-03/output_CLEANED.json
+2025-12-17 17:34:15,191 - storage - INFO - output directory: /home/gbemike/Documents/github/GrokResearch/outputs/trolling_analysis_results/trolling_analysis_2025_10
+2025-12-17 17:34:15,302 - build_analysis - INFO - Initializing TrollAnalyzer
+2025-12-17 17:34:15,373 - build_analysis - INFO - Primary model: gemini-2.0-flash
+2025-12-17 17:34:15,373 - build_analysis - INFO - Max retries: 3
+2025-12-17 17:34:15,373 - build_analysis - INFO - TrollAnalyzer initialization complete
+2025-12-17 17:34:15,373 - orchestrator - INFO - Orchestrator initialized
+2025-12-17 17:34:15,373 - __main__ - INFO - Loading conversations from: /home/gbemike/Documents/github/GrokResearch/grok_data/Grok_2025-03/output_CLEANED.json
+2025-12-17 17:34:15,373 - storage - INFO - loading json file: /home/gbemike/Documents/github/GrokResearch/grok_data/Grok_2025-03/output_CLEANED.json

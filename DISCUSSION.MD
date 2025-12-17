@@ -24,11 +24,11 @@ How to run:
 
    ```bash
 
-   python3 main.py --chunk-id 0 2>&1 | tee analysis_run.log
    python3 main.py --chunk-id 1 2>&1 | tee analysis_run.log
    python3 main.py --chunk-id 2 2>&1 | tee analysis_run.log
    python3 main.py --chunk-id 3 2>&1 | tee analysis_run.log
    python3 main.py --chunk-id 4 2>&1 | tee analysis_run.log
+   python3 main.py --chunk-id 5 2>&1 | tee analysis_run.log
 
    ```
 
@@ -53,11 +53,11 @@ How to run:
 3. **How It Works**:
 
    - For a dataset with `N` conversations and `NUMBER_OF_CHUNKS = 5`:
-     - Chunk 1 processes conversations where `i % 5 == 0`.
-     - Chunk 2 processes conversations where `i % 5 == 1`.
-     - Chunk 3 processes conversations where `i % 5 == 2`.
-     - Chunk 4 processes conversations where `i % 5 == 3`.
-     - Chunk 5 processes conversations where `i % 5 == 4`.
+     - Chunk 1 processes conversations where `i % 5 == 1`.
+     - Chunk 2 processes conversations where `i % 5 == 2`.
+     - Chunk 3 processes conversations where `i % 5 == 3`.
+     - Chunk 4 processes conversations where `i % 5 == 4`.
+     - Chunk 5 processes conversations where `i % 5 == 5`.
 
 Your `.env` file should have the following values:
 
