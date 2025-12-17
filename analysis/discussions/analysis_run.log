@@ -1,0 +1,21 @@
+2025-12-17 16:50:04,219 - __main__ - INFO - DISCUSSION ANALYSIS PIPELINE - STARTING
+2025-12-17 16:50:04,221 - __main__ - INFO - Loading configuration...
+2025-12-17 16:50:04,221 - __main__ - INFO - Configuration loaded:
+2025-12-17 16:50:04,221 - __main__ - INFO - Input file: /home/gbemike/Documents/github/GrokResearch/grok_data/Grok_2025-03/output_CLEANED.json
+2025-12-17 16:50:04,221 - __main__ - INFO - Output path: /home/gbemike/Documents/github/GrokResearch/outputs/discussion_analysis_results/trolling_analysis_2025_03/
+2025-12-17 16:50:04,221 - __main__ - INFO - Model: gemini-2.0-flash
+2025-12-17 16:50:04,221 - __main__ - INFO - Max conversations: All
+2025-12-17 16:50:04,221 - __main__ - INFO - Chunk ID: None
+2025-12-17 16:50:04,221 - __main__ - INFO - Number of chunks: 5
+2025-12-17 16:50:04,221 - __main__ - INFO - Cache enabled: False
+2025-12-17 16:50:04,221 - __main__ - INFO - Initializing components...
+2025-12-17 16:50:04,221 - cache - INFO - Initialized cache directory: /home/gbemike/Documents/github/GrokResearch/outputs/.discussion_analysis_cache
+2025-12-17 16:50:04,222 - storage - INFO - initialized encoding handler with file: /home/gbemike/Documents/github/GrokResearch/grok_data/Grok_2025-03/output_CLEANED.json
+2025-12-17 16:50:04,222 - storage - INFO - output directory: /home/gbemike/Documents/github/GrokResearch/outputs/discussion_analysis_results/trolling_analysis_2025_03
+2025-12-17 16:50:04,327 - build_analysis - INFO - Initializing DiscussionAnalyzer
+2025-12-17 16:50:04,397 - build_analysis - INFO - Primary model: gemini-2.0-flash
+2025-12-17 16:50:04,397 - build_analysis - INFO - Max retries: 3
+2025-12-17 16:50:04,397 - build_analysis - INFO - DiscussionAnalyzer initialization complete
+2025-12-17 16:50:04,397 - orchestrator - INFO - Orchestrator initialized
+2025-12-17 16:50:04,397 - __main__ - INFO - Loading conversations from: /home/gbemike/Documents/github/GrokResearch/grok_data/Grok_2025-03/output_CLEANED.json
+2025-12-17 16:50:04,397 - storage - INFO - loading json file: /home/gbemike/Documents/github/GrokResearch/grok_data/Grok_2025-03/output_CLEANED.json

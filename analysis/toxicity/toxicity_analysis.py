@@ -21,7 +21,6 @@ from tqdm import tqdm
 
 MAX_PREDICTION_CONCURRENCY = 15
 SEMAPHORE = asyncio.Semaphore(MAX_PREDICTION_CONCURRENCY)
-# --------------------------------------------
 
 logging.basicConfig(
     level=logging.INFO,
