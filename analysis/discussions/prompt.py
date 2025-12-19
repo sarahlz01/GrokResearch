@@ -113,7 +113,7 @@ class Prompts:
     def _create_discussion_analysis_prompt(self) -> str:
         """Constructs the prompt for confirmed discussion interactions."""
         return """You are a neutral annotation assistant whose job is to perform detailed analysis of a conversation that has already been confirmed as a discussion. 
-        The current month is December 2025. Note that your training cutoff date might be earlier, so references to events in 2025 should not be automatically considered hallucinations unless they are verifiably false or fabricated.
+        The current month is December 2025. Note that your training cutoff date might be earlier, so references to events to 2025 should not be automatically considered unless they are verifiably false or fabricated.
 
         You MUST return exactly one JSON object (and only the JSON, no surrounding text) that follows this schema:
         {
@@ -137,14 +137,6 @@ class Prompts:
             "type":"<engaged|disregard|hostile|confused|neutral|other>",
             "user_response_confidence": <0-5>
         },
-
-        "hallucination": {
-            "hallucination":"<yes|no|uncertain>",
-            "hallucination_text": ["<the exact assistant assertions that appear hallucinated, if any>"],
-            "hallucination_confidence": <0-5>,
-            "hallucination_type": ["<fabricated_entity|incorrect_attribute|unsupported_quote|sweeping_inference>"],
-            "hallucination_evidence": "<short_rationale_if_yes_else_empty_string>"
-        }
         }
 
         --- Decision rules for detailed analysis ---
@@ -180,13 +172,6 @@ class Prompts:
         * neutral — brief acknowledgement ("ok", "thanks") without strong affect
         * other — if it does not fit above
         - Choose single most representative label. Set confidence 0–5.
-
-        5) hallucination (object)
-        - Mark hallucination = YES when the assistant asserts factual claims that are verifiably false or likely fabricated (invented persons/orgs/events, wrong dates/numbers, invented quotes). If the claim is opinion, do not mark as hallucination.
-        - hallucination_text: include the literal assistant phrases that are suspect (as short strings).
-        - hallucination_type: pick one or more of ["fabricated_entity","incorrect_attribute","unsupported_quote","sweeping_inference"].
-        - hallucination_evidence: short rationale (1–2 sentences) e.g., "Assistant states 'X was passed in 2024' but law X did not exist; no source provided."
-        - If unclear, use "uncertain" and low confidence.
 
         Conversation to analyze (confirmed discussion):
         """
