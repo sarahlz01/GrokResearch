@@ -331,13 +331,6 @@ class EncodingHandler:
                         "type": parsed_response.get("user_response", {}).get("type", "other"),
                         "user_response_confidence": parsed_response.get("user_response", {}).get("user_response_confidence", 1),
                     },
-                    "hallucination": {
-                        "hallucination": parsed_response.get("hallucination", {}).get("hallucination", "uncertain"),
-                        "hallucination_text": parsed_response.get("hallucination", {}).get("hallucination_text", []),
-                        "hallucination_confidence": parsed_response.get("hallucination", {}).get("hallucination_confidence", 1),
-                        "hallucination_type": parsed_response.get("hallucination", {}).get("hallucination_type", []),
-                        "hallucination_evidence": parsed_response.get("hallucination", {}).get("hallucination_evidence", ""),
-                    },
                 }
                 
                 all_analysis.append(result)

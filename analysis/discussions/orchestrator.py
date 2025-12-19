@@ -133,9 +133,7 @@ class Orchestrator:
         bias_language_counts = {'yes': 0, 'no': 0, 'uncertain': 0}
         assistant_stances = []
         user_response_types = []
-        
-        # Analyze hallucination patterns
-        hallucination_counts = {'yes': 0, 'no': 0, 'uncertain': 0}
+
         
         for conv in analysis_results:
             discussion_analysis = conv.get('discussion_analysis', {})
@@ -164,12 +162,7 @@ class Orchestrator:
                 if 'user_response' in detailed and isinstance(detailed['user_response'], dict):
                     response_type = detailed['user_response'].get('type', 'other')
                     user_response_types.append(response_type)
-                
-                # Hallucination analysis
-                if 'hallucination' in detailed and isinstance(detailed['hallucination'], dict):
-                    halluc = detailed['hallucination'].get('hallucination', 'uncertain')
-                    hallucination_counts[halluc] = hallucination_counts.get(halluc, 0) + 1
-        
+
         # Calculate averages
         avg_discussion_intensity = round(sum(discussion_intensities) / len(discussion_intensities), 2) if discussion_intensities else 0
         
@@ -201,10 +194,6 @@ class Orchestrator:
                 "bias_language_counts": bias_language_counts,
                 "assistant_stance_distribution": dict(sorted(assistant_stance_counts.items(), key=lambda x: x[1], reverse=True)),
                 "user_response_type_distribution": dict(sorted(user_response_type_counts.items(), key=lambda x: x[1], reverse=True))
-            },
-            "hallucination_analysis": {
-                "hallucination_counts": hallucination_counts,
-                "hallucination_rate": hallucination_counts.get('yes', 0) / total_conversations if total_conversations > 0 else 0
             }
         }
 
