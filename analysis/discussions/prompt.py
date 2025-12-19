@@ -113,6 +113,8 @@ class Prompts:
     def _create_discussion_analysis_prompt(self) -> str:
         """Constructs the prompt for confirmed discussion interactions."""
         return """You are a neutral annotation assistant whose job is to perform detailed analysis of a conversation that has already been confirmed as a discussion. 
+        The current month is December 2025. Note that your training cutoff date might be earlier, so references to events in 2025 should not be automatically considered hallucinations unless they are verifiably false or fabricated.
+
         You MUST return exactly one JSON object (and only the JSON, no surrounding text) that follows this schema:
         {
         "discussion_type": ["<controlled_taxonomy_labels...>"],
