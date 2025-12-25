@@ -24,14 +24,12 @@ logging.basicConfig(
 
 def parse_arguments() -> argparse.Namespace:
     """Parse command line arguments."""
-    parser = argparse.ArgumentParser(
-        description="Analyze Assistant's responses to potential trolling tweets."
-    )
+    parser = argparse.ArgumentParser()
     parser.add_argument(
         "--chunk-id", 
         type=int, 
         default=None,
-        help="Process a specific parallel chunk (1 to N). Overrides --max-conversations if set."
+        help="Process a specific parallel chunk (1 to N)."
     )
     
     return parser.parse_args()
