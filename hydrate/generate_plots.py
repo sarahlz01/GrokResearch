@@ -11,6 +11,8 @@ from matplotlib import transforms as mtransforms
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 from matplotlib.ticker import FuncFormatter
+from scipy.stats import mannwhitneyu
+
 
 mpl.rcParams.update({
     "font.size": 24,        # base
@@ -24,6 +26,12 @@ mpl.rcParams.update({
 # ---------- Config ----------
 TWITTER_DATE_FMT = "%a %b %d %H:%M:%S %z %Y"
 GROK_USER_ID = "1720665183188922368"  # consistent with your cleaners
+
+# colors
+USER_COLOR = "#0081a7"
+GROK_COLOR = "#f07167"
+
+
 
 # Weekly window (inclusive). Everything before START_DATE -> "Before Mar". After END_DATE ignored.
 WINDOW_YEAR = 2025
@@ -123,6 +131,39 @@ def normalize_lang_code(code: str) -> Optional[str]:
 
     # Regular languages
     return LANGUAGE_LABELS.get(c, c.upper())  # fallback: show code uppercased
+
+def proper_case_label(code_or_label: str) -> str:
+    """
+    Turn language codes / labels into a proper-noun display label.
+    - Known codes: use LANGUAGE_LABELS mapping (already proper cased).
+    - Unknown codes: Title Case (e.g. "klingon" -> "Klingon"), or for short codes -> uppercase ("kk" -> "KK").
+    """
+    if not code_or_label:
+        return "Unknown"
+
+    s = str(code_or_label).strip()
+    low = s.lower()
+
+    # Map legacy aliases
+    if low == "iw": low = "he"
+    if low == "in": low = "id"
+
+    # Non-linguistic handling
+    if low in NON_LINGUISTIC_CODES or low == "non-linguistic":
+        return "Other"  # or "Non-linguistic" if you prefer
+
+    # If it's a known language code
+    if low in LANGUAGE_LABELS:
+        return LANGUAGE_LABELS[low]
+
+    # If it's already a readable label (not just a 2–3 char code), title-case it
+    if len(low) > 3 and any(ch.isalpha() for ch in low):
+        # keep hyphenated / spaced labels nice
+        return " ".join(part.capitalize() for part in s.replace("-", " ").split())
+
+    # fallback: treat as code
+    return low.upper()
+
 
 ENG_METRICS = ("views", "likes", "reposts", "replies", "quotes", "bookmarks")
 ENG_BINS = [0,1,2,5,10,20,50,100,200,500,1_000,2_000,5_000,10_000,50_000,100_000,1_000_000]
@@ -268,9 +309,16 @@ def aggregate_stats(input_path:str)->Dict:
     eng_user_hists=_empty_hist(); eng_grok_hists=_empty_hist()
     eng_user_vals=defaultdict(list); eng_grok_vals=defaultdict(list)
 
+    # ==== CHANGED BLOCK: skip the first tweet in each thread for engagement + weekly counts ====
     for conv in iter_conversations(input_path):
         for th in conv.get("threads", []) or []:
-            for t in th.get("tweets", []) or []:
+            tweets = th.get("tweets", []) or []
+            if len(tweets) <= 1:
+                # no “downstream” tweets to measure engagement on
+                continue
+
+            # Skip the first tweet in the thread; only use replies / follow-ups
+            for t in tweets[1:]:
                 # 1) Author & engagement always counted (even if no createdAt)
                 is_g = is_grok_tweet(t)
                 em = _extract_engagement(t)
@@ -299,8 +347,27 @@ def aggregate_stats(input_path:str)->Dict:
                         wk_tweets_grok[wk] += 1
                     else:
                         wk_tweets_user[wk] += 1
+    # ==== END CHANGED BLOCK ====
+    ALPHA = 0.01
 
+    mwu_results = {}
+    for metric in ["likes", "replies"]:
+        u = eng_user_vals[metric]
+        g = eng_grok_vals[metric]
 
+        U, p = mannwhitneyu(u, g, alternative="two-sided")
+
+        mwu_results[metric] = {
+            "test": "Mann–Whitney U (two-sided)",
+            "U": float(U),
+            "p_value": float(p),
+            "alpha": ALPHA,
+            "reject_H0": bool(p < ALPHA),
+            "n_user": len(u),
+            "n_grok": len(g),
+        }
+                
+            
 
     # Compute new stats: std, median
     def _std(vals): return float(np.std(vals)) if vals else 0.0
@@ -328,10 +395,10 @@ def aggregate_stats(input_path:str)->Dict:
                     "std":eng_user_std,"median":eng_user_median},
             "grok":{"sums":dict(eng_grok_sums),"counts":dict(eng_grok_counts),"hists":eng_grok_hists,
                     "std":eng_grok_std,"median":eng_grok_median},
+            "mwu": mwu_results,
         },
         "window":{"start":START_DATE.isoformat(),"end":END_DATE.isoformat()},
     }
-
 
 def _human_int(v):
     v = float(v)
@@ -365,8 +432,9 @@ def plot_tweets_over_weeks_stacked(stats: Dict, save_prefix: str):
     x = np.arange(len(weeks) + 1)
 
     plt.figure(figsize=(14, 6))
-    plt.bar(x, user_counts, label="User")
-    plt.bar(x, grok_counts, bottom=user_counts, label="Grok", color="orange")
+    plt.bar(x, user_counts, label="User", color=USER_COLOR)
+    plt.bar(x, grok_counts, bottom=user_counts, label="Grok", color=GROK_COLOR)
+
 
     # month ticks: 0 ('Before Mar') + index where month changes
     month_pos = []
@@ -397,7 +465,7 @@ def plot_turns(stats: Dict, save_prefix: str):
     ys = [(buckets.get(x, 0) * 100.0 / total_threads) for x in xs]
 
     plt.figure(figsize=(9, 6))
-    plt.bar(xs, ys)
+    plt.bar(xs, ys, color=USER_COLOR)
     plt.xlabel("Number of turns")
     plt.ylabel("% of total conversations")
     plt.ylim(0, 50)
@@ -408,13 +476,10 @@ def plot_turns(stats: Dict, save_prefix: str):
 def _remap_langs_for_plot(d: Dict[str, int]) -> Counter:
     out = Counter()
     for k, v in (d or {}).items():
-        key = (k or "").lower()
-        if key in NON_LINGUISTIC_CODES or key == "non-linguistic":
-            out["Other"] += int(v)
-        else:
-            label = LANGUAGE_LABELS.get(key, key.upper())  # “en”->“EN” unless mapped
-            out[label] += int(v)
+        label = proper_case_label(k)
+        out[label] += int(v)
     return out
+
 
 def plot_languages_stacked(stats: Dict, save_prefix: str):
     """
@@ -448,8 +513,9 @@ def plot_languages_stacked(stats: Dict, save_prefix: str):
 
      # --- plot ---
     fig, ax = plt.subplots(figsize=(12, 6))
-    ax.bar(labels, user_counts, label="User")
-    ax.bar(labels, grok_counts, bottom=user_counts, label="Grok", color="orange")
+    ax.bar(labels, user_counts, label="User", color=USER_COLOR)
+    ax.bar(labels, grok_counts, bottom=user_counts, label="Grok", color=GROK_COLOR)
+
     ax.set_ylabel("Tweets")
     _apply_human_y(ax)
 
@@ -488,7 +554,7 @@ def plot_threads_over_weeks_stacked(stats: Dict, save_prefix: str):
     ]
     
     plt.figure(figsize=(14, 6))
-    plt.bar(labels, counts)  # single solid series
+    plt.bar(labels, counts, color=USER_COLOR)  # single solid series
     plt.xlabel("Week (start date)")
     plt.ylabel("Threads")
     _apply_human_y(plt.gca())
@@ -496,59 +562,90 @@ def plot_threads_over_weeks_stacked(stats: Dict, save_prefix: str):
     plt.tight_layout()
     plt.savefig(f"{save_prefix}_threads_per_week.png", dpi=220)
 
-
 def plot_engagement_totals(stats: Dict, save_prefix: str, use_log_scale: bool = True):
     """
     Compare AVERAGE engagement per tweet for User vs Grok.
     Uses stats['engagement']['sums'] and ['counts'] to compute means.
+
+    Also prints mean ± 95% CI for each metric to stdout.
     """
     eng = stats.get("engagement", {})
-    metrics: List[str] = list(eng.get("metrics", []))
+
+    # Use original labels for plot/printing, but lowercase keys for lookup
+    metric_labels: List[str] = list(eng.get("metrics", []))
+    metric_keys: List[str]   = [m.lower() for m in metric_labels]
 
     user = (eng.get("user") or {})
     grok = (eng.get("grok") or {})
-    user_sums: Dict[str, int] = user.get("sums", {}) or {}
-    grok_sums: Dict[str, int] = grok.get("sums", {}) or {}
+
+    user_sums: Dict[str, int]   = user.get("sums", {}) or {}
+    grok_sums: Dict[str, int]   = grok.get("sums", {}) or {}
     user_counts: Dict[str, int] = user.get("counts", {}) or {}
     grok_counts: Dict[str, int] = grok.get("counts", {}) or {}
+    user_std: Dict[str, float]  = user.get("std", {}) or {}
+    grok_std: Dict[str, float]  = grok.get("std", {}) or {}
 
-    if not metrics:
+    if not metric_labels:
         print("No engagement metrics found in stats['engagement'].")
         return
 
+    # --- helpers (expect LOWERCASE metric key) ---
+    def _mean(sums: Dict[str, int], counts: Dict[str, int], key: str) -> float:
+        n = int(counts.get(key, 0))
+        if n <= 0:
+            return 0.0
+        return float(sums.get(key, 0)) / n
 
-    # Averages = sums / counts (guard divide-by-zero)
-    def _avg(sums: Dict[str, int], counts: Dict[str, int]) -> List[float]:
-        return [
-            (float(sums.get(m, 0)) / max(int(counts.get(m, 0)), 1))
-            for m in metrics
-        ]
+    def _se(std_map: Dict[str, float], counts: Dict[str, int], key: str) -> float:
+        n = int(counts.get(key, 0))
+        if n <= 1:
+            return 0.0
+        return float(std_map.get(key, 0.0)) / math.sqrt(n)
 
-    u_vals = _avg(user_sums, user_counts)
-    g_vals = _avg(grok_sums, grok_counts)
-    print(f"U_AVG: {u_vals}")
-    print(f"G_AVG: {g_vals}")
+    def _ci95(mean: float, se: float) -> tuple[float, float]:
+        half = 1.96 * se
+        return mean - half, mean + half
 
-    x = list(range(len(metrics)))
+    # values for plotting (use lowercase keys)
+    u_vals = [_mean(user_sums, user_counts, k) for k in metric_keys]
+    g_vals = [_mean(grok_sums, grok_counts, k) for k in metric_keys]
+
+    # --- print table to stdout ---
+    print("\n=== Engagement means ± 95% CI (per tweet) ===")
+    for label, key in zip(metric_labels, metric_keys):
+        u_mean = _mean(user_sums, user_counts, key)
+        g_mean = _mean(grok_sums, grok_counts, key)
+        u_se = _se(user_std, user_counts, key)
+        g_se = _se(grok_std, grok_counts, key)
+        u_lo, u_hi = _ci95(u_mean, u_se)
+        g_lo, g_hi = _ci95(g_mean, g_se)
+
+        print(
+            f"{label:>8} | "
+            f"User: {u_mean:.3f} ± {1.96*u_se:.3f}  ({u_lo:.3f}, {u_hi:.3f})  |  "
+            f"Grok: {g_mean:.3f} ± {1.96*g_se:.3f}  ({g_lo:.3f}, {g_hi:.3f})"
+        )
+
+    # --- plot as before (use original labels on x-axis) ---
+    x = list(range(len(metric_labels)))
     width = 0.45
 
     plt.figure(figsize=(14, 6))
-    # User (default), Grok (orange), side-by-side
-    plt.bar([i - width/2 for i in x], u_vals, width=width, label="User")
-    plt.bar([i + width/2 for i in x], g_vals, width=width, label="Grok", color="orange")
+    plt.bar([i - width/2 for i in x], u_vals, width=width, label="User", color=USER_COLOR)
+    plt.bar([i + width/2 for i in x], g_vals, width=width, label="Grok", color=GROK_COLOR)
+
 
     plt.xlabel("Engagement metric")
     plt.ylabel("Average per tweet")
-    _apply_human_y(plt.gca())  # 1.2K, 3.4M formatting
-    plt.xticks(x, metrics, rotation=0)
+    _apply_human_y(plt.gca())
+    plt.xticks(x, metric_labels, rotation=0)
     if use_log_scale:
-        plt.yscale("log")  # optional: heavy tails still possible across metrics
-        plt.ylabel("Avg per tweet (log scale)")
+        plt.yscale("log")
+        plt.ylabel("Average per tweet")
     plt.legend()
     plt.tight_layout()
     plt.savefig(f"{save_prefix}_eng_avgs.png", dpi=220)
     plt.close()
-
 
 
 

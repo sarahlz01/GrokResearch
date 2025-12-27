@@ -19,7 +19,7 @@ max_len_thread_id = None
 grok_ratios = []   # per-thread ratio = (# ASSISTANT tweets) / (thread length)
 grok_ratios_with_more_than_50 = []
 thread_ids = []
-threads_greater_100_count = 0
+threads_greater_20_less_100 = 0
 
 # Tweet text lengths
 tweet_text_lengths = []
@@ -53,8 +53,8 @@ with open(INPUT_PATH, "r") as f:
         thread_counter += 1
         thread_lengths.append(n)
 
-        if n >= 100:
-            threads_greater_100_count += 1
+        if n <= 100 and n>=20:
+            threads_greater_20_less_100 += 1
         if n > max_len:
             max_len = n
             max_len_thread_id = threadid
@@ -98,7 +98,7 @@ if thread_lengths:
     print(f"Average Grok reply ratio: {avg_grok_ratio:.3f}")
     print(f"Threads with length <= 1: {len_1_counter}")
     print(f"Max thread length: {max(thread_lengths)} (threadId: {max_len_thread_id})")
-    print(f"Number of threads >= 100:\t{threads_greater_100_count}")
+    print(f"Number of threads 20 <= len <= 100:\t{threads_greater_20_less_100}")
     print(f"Grok threads with > 0.5 ratio {len(grok_ratios_with_more_than_50)}")
 
     # ---- NEW: recovery output ----

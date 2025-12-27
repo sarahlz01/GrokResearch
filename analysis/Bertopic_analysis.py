@@ -27,7 +27,7 @@ def clean_tweet(text):
     return text
 
 
-sns.set(style="whitegrid") #for plots
+sns.set_theme(style="whitegrid") #for plots
 
 # BERTopic imports
 from bertopic import BERTopic
