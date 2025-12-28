@@ -105,18 +105,22 @@ class EncodingHandler:
             raise
 
     def _parse_discussion_detection_response(self, api_response: str) -> List[Dict]:
-        """Safely parses the JSON from the model's response."""
+        """
+        Safely parses the JSON from the model's response.
+        """
         logger.info("starting discussion detection response parsing")
         logger.debug(f"raw response length: {len(api_response) if api_response else 0} characters")
         
         all_analysis = []
-        failed_count = 0
+        failure_info = {}
         
         try:
             lines = api_response.strip().split("\n")
             logger.info(f"processing {len(lines)} response lines")
             
             for line_num, raw_line in enumerate(lines, 1):
+                conversation_id = None
+                
                 if not raw_line.strip():
                     logger.debug(f"line {line_num}: empty, skipping")
                     continue
@@ -124,27 +128,27 @@ class EncodingHandler:
                 # parse the batch response line
                 try:
                     obj = json.loads(raw_line)
+                    conversation_id = obj.get("key")
+                    logger.debug(f"line {line_num}: processing conversation {conversation_id}")
                 except json.JSONDecodeError as e:
                     logger.error(f"line {line_num}: malformed json - {e}")
-                    failed_count += 1
                     continue
             
+                # validate obj structure
                 if not isinstance(obj, dict) or "key" not in obj:
                     logger.error(f"line {line_num}: missing 'key' field, got type {type(obj)}")
-                    failed_count += 1
+                    if conversation_id:
+                        failure_info[conversation_id] = f"Missing 'key' field in response object"
                     continue
-            
-                conversation_id = obj.get("key")
-                logger.debug(f"line {line_num}: processing conversation {conversation_id}")
 
                 # extract response text
                 try:
                     response_obj = obj["response"]
                     text = response_obj["candidates"][0]["content"]["parts"][0]["text"]
-                    logger.debug(f"conversation {conversation_id}: extracted response text chars)")
+                    logger.debug(f"conversation {conversation_id}: extracted response text")
                 except (KeyError, IndexError, TypeError) as e:
                     logger.error(f"conversation {conversation_id}: could not extract response text - {e}")
-                    failed_count += 1
+                    failure_info[conversation_id] = f"Failed to extract response text: {str(e)}"
                     continue
             
                 # clean and parse JSON
@@ -164,13 +168,13 @@ class EncodingHandler:
                 except json.JSONDecodeError as e:
                     logger.error(f"conversation {conversation_id}: failed to parse json - {e}")
                     logger.debug(f"problematic json string: {json_str[:200]}")
-                    failed_count += 1
+                    failure_info[conversation_id] = f"JSON decode error in response content: {str(e)}"
                     continue
 
                 # validate parsed response structure
                 if not isinstance(parsed_response, dict):
                     logger.error(f"conversation {conversation_id}: expected dict, got {type(parsed_response)}")
-                    failed_count += 1
+                    failure_info[conversation_id] = f"Expected dict, got {type(parsed_response).__name__}"
                     continue
 
                 # extract and validate is_discussion field
@@ -229,53 +233,51 @@ class EncodingHandler:
                 except Exception as e:
                     logger.warning(f"conversation {conversation_id}: failed to cache - {e}")
             
-            logger.info(f"discussion detection parsing complete: {len(all_analysis)} successful, {failed_count} failed")
+            logger.info(f"discussion detection parsing complete: {len(all_analysis)} successful, {len(failure_info)} failed")
             
-            if failed_count > 0:
-                logger.warning(f"parsing had {failed_count} failures out of {len(lines)} total lines")
+            if len(failure_info) > 0:
+                logger.warning(f"parsing had {len(failure_info)} failures out of {len(lines)} total lines")
             
-            return all_analysis
+            return all_analysis, failure_info
             
-        except json.JSONDecodeError as e:
-            logger.error(f"json decode error during parsing: {e}")
-            logger.debug(f"problematic response text: {api_response[:500]}")
-            return []
         except Exception as e:
-            logger.error(f"catastrophic parsing failure: {e}")
-            logger.debug(f"traceback: {traceback.format_exc()}")
-            return []
+            logger.error(f"Catastrophic parsing failure: {e}")
+            return all_analysis, failure_info
 
     def _parse_discussion_analysis_response(self, api_response: str) -> List[Dict]:
-        """Safely parses the JSON from the model's detailed analysis response."""
+        """
+        Safely parses the JSON from the model's detailed analysis response.
+        """
         logger.info("starting discussion analysis response parsing")
         logger.debug(f"raw response length: {len(api_response) if api_response else 0} characters")
         
         all_analysis = []
-        failed_count = 0
+        failure_info = {}
 
         try:
             lines = api_response.strip().split("\n")
             logger.info(f"processing {len(lines)} response lines")
 
             for line_num, raw_line in enumerate(lines, 1):
+                conversation_id = None
+                
                 if not raw_line.strip():
                     logger.debug(f"line {line_num}: empty, skipping")
                     continue
             
                 try:
                     obj = json.loads(raw_line)
+                    conversation_id = obj.get("key")
+                    logger.debug(f"line {line_num}: processing conversation {conversation_id}")
                 except json.JSONDecodeError as e:
                     logger.error(f"line {line_num}: malformed json - {e}")
-                    failed_count += 1
                     continue
             
-                if not isinstance(obj, Dict) or "key" not in obj:
+                if not isinstance(obj, dict) or "key" not in obj:
                     logger.error(f"line {line_num}: missing 'key' field, got type {type(obj)}")
-                    failed_count += 1
+                    if conversation_id:
+                        failure_info[conversation_id] = "Missing 'key' field in response object"
                     continue
-            
-                conversation_id = obj.get("key")
-                logger.debug(f"line {line_num}: processing conversation {conversation_id}")
 
                 try:
                     response_obj = obj["response"]
@@ -283,7 +285,7 @@ class EncodingHandler:
                     logger.debug(f"conversation {conversation_id}: extracted response text ({len(text)} chars)")
                 except (KeyError, IndexError, TypeError) as e:
                     logger.error(f"conversation {conversation_id}: could not extract response text - {e}")
-                    failed_count += 1
+                    failure_info[conversation_id] = f"Failed to extract response text: {str(e)}"
                     continue
             
                 cleaned_text = text.strip().replace("```json", "").replace("```", "")
@@ -302,16 +304,15 @@ class EncodingHandler:
                 except json.JSONDecodeError as e:
                     logger.error(f"conversation {conversation_id}: failed to parse json - {e}")
                     logger.debug(f"problematic json string: {json_str[:200]}")
-                    failed_count += 1
+                    failure_info[conversation_id] = f"JSON decode error in response content: {str(e)}"
                     continue
 
                 # validate parsed response structure
                 if not isinstance(parsed_response, dict):
                     logger.error(f"conversation {conversation_id}: expected dict, got {type(parsed_response)}")
-                    failed_count += 1
+                    failure_info[conversation_id] = f"Expected dict, got {type(parsed_response).__name__}"
                     continue
 
-                # Build the result dictionary based on the expected JSON schema
                 result = {
                     "conversationId": conversation_id,
                     "discussion_type": parsed_response.get("discussion_type", ["other"]),
@@ -343,18 +344,29 @@ class EncodingHandler:
                 except Exception as e:
                     logger.warning(f"conversation {conversation_id}: failed to cache detailed analysis - {e}")
             
-            logger.info(f"detailed analysis parsing complete: {len(all_analysis)} successful, {failed_count} failed")
+            logger.info(f"detailed analysis parsing complete: {len(all_analysis)} successful, {len(failure_info)} failed")
             
-            if failed_count > 0:
-                logger.warning(f"parsing had {failed_count} failures out of {len(lines)} total lines")
+            if len(failure_info) > 0:
+                logger.warning(f"parsing had {len(failure_info)} failures out of {len(lines)} total lines")
             
-            return all_analysis
-    
-        except json.JSONDecodeError as e:
-            logger.error(f"json decode error during detailed parsing: {e}")
-            logger.debug(f"problematic response text: {api_response[:500]}")
-            return []
+            return all_analysis, failure_info
+
         except Exception as e:
             logger.error(f"catastrophic detailed parsing failure: {e}")
             logger.debug(f"traceback: {traceback.format_exc()}")
-            return []
+            return all_analysis, failure_info
+        
+
+    def save_failed_conversations(self, failed_data: Dict):
+        """
+        Append failed conversations to JSONL file.
+        """
+        filename = "failed_discussion_conversations.jsonl"
+        output_file = self.output_path.parent / filename
+        with open(output_file, 'a', encoding='utf-8') as f:
+            for conversation_id, data in failed_data.items():
+                entry = {
+                    'conversationId': conversation_id,
+                    **data
+                }
+                f.write(json.dumps(entry, ensure_ascii=False) + '\n')

@@ -1,7 +1,7 @@
+from datetime import datetime
 import logging
 import os
 import traceback
-from collections import Counter
 from typing import Dict, List
 
 from batch import BatchManager
@@ -50,10 +50,13 @@ class DiscussionAnalyzer:
         
         try:
             final_results = []
+            failed_conversations = {}
             
-            # Step 1: Discussion Detection (all conversations) ---
+            # Step 1: Discussion Detection (all conversations)
             logger.info(f"step 1: checking if conversations are discussions for chunk {chunk_id}")
             discussion_detection_result = self._analyze_conversations_for_discussion(conversations, chunk_id)
+
+
 
             if not discussion_detection_result:
                 logger.error(f"discussion detection analysis returned None for chunk {chunk_id}")
@@ -93,6 +96,9 @@ class DiscussionAnalyzer:
             }
             
             logger.debug(f"built conversation map with {len(conversation_map)} entries")
+
+            # handle failed conversations
+            logger.info(f"these ids failed in batch run: {[id for id in failed_conversations]}")
 
             # validate mapping
             missing_conversations = intent_map.keys() - conversation_map.keys()
@@ -176,8 +182,9 @@ class DiscussionAnalyzer:
             logger.debug(f"traceback: {traceback.format_exc()}")
             return []  # consistent return type on error
         
-    def _analyze_discussion_conversations(self, conversations: Dict, chunk_id: int) -> List[Dict]:
+    def _analyze_discussion_conversations(self, conversations: List[Dict], chunk_id: int) -> List[Dict]:
         """Analyzes a discussion tagged conversation and assistants response in detail."""
+        failed_conversations = {}
         
         logger.info(f"starting detailed discusison analysis for chunk {chunk_id}")
         logger.debug(f"analyzing {len(conversations) if conversations else 0} conversations")
@@ -197,7 +204,25 @@ class DiscussionAnalyzer:
             logger.debug(f"batch pipeline complete, received {len(batch_results) if isinstance(batch_results, list) else 'non-list'} results")
             
             logger.info(f"parsing discussion analysis response for chunk {chunk_id}")
-            discussion_analysis_results = self.storage._parse_discussion_analysis_response(batch_results)
+            discussion_analysis_results, failure_info = self.storage._parse_discussion_analysis_response(batch_results)
+
+            conversation_map = {conv['conversationId']: conv for conv in conversations}
+
+            if failure_info:
+                for conversation_id, failure_reason in failure_info.items():
+                    conversation = conversation_map.get(conversation_id)                  
+                    failed_conversations[conversation_id] = {
+                        'conversation': conversation,
+                        'metadata': {
+                            'stage': 'discussion_analysis',
+                            'chunk': chunk_id,
+                            'timestamp': datetime.now().isoformat(),
+                            'failure_reason': failure_reason
+                    }
+                }
+
+            if failed_conversations:
+                self.storage.save_failed_conversations(failed_conversations)
             
             logger.info(f"discussion analysis parsing complete, extracted {len(discussion_analysis_results) if isinstance(discussion_analysis_results, list) else 'non-list'} analysis data")
                 
@@ -206,11 +231,12 @@ class DiscussionAnalyzer:
         except Exception as e:
             logger.error(f"discussion analysis failed for chunk {chunk_id}: {e}")
             logger.debug(f"Traceback: {traceback.format_exc()}")
-            return None # Return None to indicate failure
+            return None
     
     
-    def _analyze_conversations_for_discussion(self, conversations: Dict, chunk_id: int) -> List[Dict]:
+    def _analyze_conversations_for_discussion(self, conversations: List[Dict], chunk_id: int) -> List[Dict]:
         """Analyzes if a user's tweet contains discussion detection."""
+        failed_conversations = {}
         
         logger.info(f"starting discussion detection analysis for chunk {chunk_id}")
         logger.debug(f"analyzing {len(conversations) if conversations else 0} conversations")
@@ -230,7 +256,25 @@ class DiscussionAnalyzer:
             logger.debug(f"batch pipeline complete, received {len(batch_results) if isinstance(batch_results, list) else 'non-list'} results")
             
             logger.info(f"parsing discussion detection response for chunk {chunk_id}")
-            discussion_detection_result = self.storage._parse_discussion_detection_response(batch_results)
+            discussion_detection_result, failure_info = self.storage._parse_discussion_detection_response(batch_results)
+
+            conversation_map = {conv['conversationId']: conv for conv in conversations}
+
+            if failure_info:
+                for conversation_id, failure_reason in failure_info.items():
+                    conversation = conversation_map.get(conversation_id)                  
+                    failed_conversations[conversation_id] = {
+                        'conversation': conversation,
+                        'metadata': {
+                            'stage': 'discussion_detection',
+                            'chunk': chunk_id,
+                            'timestamp': datetime.now().isoformat(),
+                            'failure_reason': failure_reason
+                    }
+                }
+
+            if failed_conversations:
+                self.storage.save_failed_conversations(failed_conversations)
             
             logger.info(f"discussion detection analysis complete: identified {len(discussion_detection_result) if isinstance(discussion_detection_result, list) else 'non-list'} results")
             return discussion_detection_result

@@ -87,7 +87,7 @@ class EncodingHandler:
 
     def save_json_with_encoding(self, data: Dict, chunk_id: int, encoding: str = 'utf-8'):
         """Save JSON file with specified encoding."""
-        filename = f"report_chunk_{chunk_id}.json"
+        filename = f"output_raw_chunk_{chunk_id}.json" if chunk_id else f"output_raw_chunk_0.json"
         output_file = self.output_path / filename
 
         logger.info(f"saving json to {output_file}")

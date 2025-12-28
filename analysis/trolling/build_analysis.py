@@ -1,7 +1,7 @@
 import logging
 import os
 import traceback
-from collections import Counter
+from datetime import datetime
 from typing import Dict, List
 
 from batch import BatchManager
@@ -94,6 +94,24 @@ class TrollAnalyzer:
             
             logger.debug(f"built conversation map with {len(conversation_map)} entries")
 
+                        # handle failed conversations
+            logger.info(f"these ids failed in batch run: {[id for id in failed_conversations]}")
+
+            if failure_info:
+                for conversation_id, failure_reason in failure_info.items():
+                    conversation = conversation_map.get(conversation_id)                  
+                    failed_conversations[conversation_id] = {
+                        'conversation': conversation,
+                        'metadata': {
+                            'chunk': chunk_id,
+                            'timestamp': datetime.now().isoformat(),
+                            'failure_reason': failure_reason
+                    }
+                    }
+
+            if failed_conversations:
+                self.storage.save_failed_conversations(failed_conversations)
+
             # validate mapping
             missing_conversations = intent_map.keys() - conversation_map.keys()
             if missing_conversations:
@@ -177,8 +195,9 @@ class TrollAnalyzer:
             logger.debug(f"traceback: {traceback.format_exc()}")
             return []  # consistent return type on error
         
-    def _analyze_trolling_tweet(self, conversations: Dict, chunk_id: int) -> List[Dict]:
+    def _analyze_trolling_tweet(self, conversations: List[Dict], chunk_id: int) -> List[Dict]:
         """Analyzes a trolling tweet and Assistants response in detail."""
+        failed_conversations = {}
         
         logger.info(f"starting detailed trolling tweet analysis for chunk {chunk_id}")
         logger.debug(f"analyzing {len(conversations) if conversations else 0} conversations")
@@ -198,7 +217,25 @@ class TrollAnalyzer:
             logger.debug(f"batch pipeline complete, received {len(batch_results) if isinstance(batch_results, list) else 'non-list'} results")
             
             logger.info(f"parsing detailed analysis response for chunk {chunk_id}")
-            troll_analysis_results = self.storage._parse_detailed_analysis_response(batch_results)
+            troll_analysis_results, failure_info = self.storage._parse_detailed_analysis_response(batch_results)
+
+            conversation_map = {conv['conversationId']: conv for conv in conversations}
+
+            if failure_info:
+                for conversation_id, failure_reason in failure_info.items():
+                    conversation = conversation_map.get(conversation_id)                  
+                    failed_conversations[conversation_id] = {
+                        'conversation': conversation,
+                        'metadata': {
+                            'stage': 'discussion_analysis',
+                            'chunk': chunk_id,
+                            'timestamp': datetime.now().isoformat(),
+                            'failure_reason': failure_reason
+                    }
+                }
+
+            if failed_conversations:
+                self.storage.save_failed_conversations(failed_conversations)
             
             logger.info(f"detailed analysis parsing complete, extracted {len(troll_analysis_results) if isinstance(troll_analysis_results, List) else 'non-list'} analysis data")
                 
@@ -210,8 +247,9 @@ class TrollAnalyzer:
             return None # Return None to indicate failure
     
     
-    def _analyze_trolling_intent(self, conversations: Dict, chunk_id: int) -> List[Dict]:
+    def _analyze_trolling_intent(self, conversations: List[Dict], chunk_id: int) -> List[Dict]:
         """Analyzes if a user's tweet contains trolling intent."""
+        failed_conversations = {}
         
         logger.info(f"starting trolling intent analysis for chunk {chunk_id}")
         logger.debug(f"analyzing {len(conversations) if conversations else 0} conversations")
@@ -231,7 +269,25 @@ class TrollAnalyzer:
             logger.debug(f"batch pipeline complete, received {len(batch_results) if isinstance(batch_results, list) else 'non-list'} results")
             
             logger.info(f"parsing trolling intent response for chunk {chunk_id}")
-            troll_detection_result = self.storage._parse_troll_detection_response(batch_results)
+            troll_detection_result, failure_info = self.storage._parse_troll_detection_response(batch_results)
+
+            conversation_map = {conv['conversationId']: conv for conv in conversations}
+
+            if failure_info:
+                for conversation_id, failure_reason in failure_info.items():
+                    conversation = conversation_map.get(conversation_id)                  
+                    failed_conversations[conversation_id] = {
+                        'conversation': conversation,
+                        'metadata': {
+                            'stage': 'discussion_detection',
+                            'chunk': chunk_id,
+                            'timestamp': datetime.now().isoformat(),
+                            'failure_reason': failure_reason
+                    }
+                }
+
+            if failed_conversations:
+                self.storage.save_failed_conversations(failed_conversations)
             
             logger.info(f"trolling intent analysis complete: identified {len(troll_detection_result) if isinstance(troll_detection_result, list) else 'non-list'} results")
             return troll_detection_result

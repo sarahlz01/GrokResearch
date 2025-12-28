@@ -1,8 +1,11 @@
-import os
+import csv
 import json
 import logging
+import os
 from pathlib import Path
+from typing import Dict, List
 
+import pandas as pd
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -21,35 +24,127 @@ logger.info(f"OUTPUT_PATH: {output_path}")
 logger.info(f"BASE_PATH (parent): {base_path}")
 
 # get all month folders (2025_03 through 2025_09)
-month_folders = [f for f in os.listdir(base_path) if f.startswith('2025_')]
+month_folders = [f for f in os.listdir(base_path) if f.startswith('discussion_analysis_2025_')]
 month_folders.sort()
 
 logger.info(f"Found {len(month_folders)} folders: {month_folders}")
 
-def merge_chunks(folder: Path, pattern: str = "*.json"):
-    merge_results = []
-    files = sorted(folder.glob(pattern))
+def join_list_field(value, separator: str = ', ') -> str:
+    if isinstance(value, list):
+        return separator.join(map(str, value))
+    return ''
 
-    for file in files:
-        try:
-            with file.open('r', encoding='utf-8') as f:
-                data = json.load(f)
-            merge_results.extend(data.get("reply_analysis", []))
-        except Exception as e:
-            logger.info(f"Skipping {file.name}: {e}")
+def get_conversation_counts(folder_paths: List[Path], pattern: str = "report_chunk_*.json") -> List[Dict]:
+    all_months = []
+
+    for folder in folder_paths:
+        folder_path = base_path / folder
+        files = sorted(folder_path.glob(pattern))
+        logger.info(f"Found {len(files)} files in {folder_path.name}")
+
+        for file in files:
+            filepath = folder_path / file
+            try:
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+
+                    if 'analysis_results' in data:
+                        results = data['analysis_results']
+                        if len(results) > 0:
+                            for result in results:
+                                result['source_folder'] = folder_path
+                                result['source_file'] = file
+                                
+                            all_months.extend(results)
+                            logger.info(f"{file.name} has {len(results)} conversations")
+            except Exception as e:
+                logger.info(f"Skipping due to {e}")
         
-    out_file = folder / "merged_results.json"
-    with out_file.open('w', encoding='utf-8') as f:
-        json.dump({'reply_analysis': merge_results}, f, indent=2, ensure_ascii=False)
-    logger.info(f"Wrote {out_file} ({len(merge_results)} items)")
+    logger.info(f"Found total of {len(all_months)} conversations")
+
+    return all_months
+
+
+def merge_chunks(conversations: List[Dict]):
+    merged_data = []
+    rows = []
+    seen_rows = set()
+
+    for conversation in conversations:
+        discussion_analysis = conversation.get('discussion_analysis', {})
+        intent = discussion_analysis.get('intent', {})
+        detailed = discussion_analysis.get('detailed') or {}
+        bias_lang = detailed.get('bias_language', {})
+        assist_stance = detailed.get('assistant_stance', {})
+        user_resp = detailed.get('user_response', {})
+
+        # build row
+        row = {
+            # ID
+            'conversationId': intent.get('conversationId', ''),
+
+            # intent values
+            'is_discussion': intent.get('is_discussion', ''),
+            'discussion_confidence': intent.get('discussion_confidence', ''),
+            'discussion_intensity': intent.get('discussion_intensity', ''),
+            'disucssion_type': intent.get('discussion_type', ''),
+            'topic': intent.get('topic', ''),
+            
+            # bias values
+            'bias_language': bias_lang.get('bias_language', ''),
+            'bias_examples': join_list_field(bias_lang.get('examples')),
+            'bias_confidence': bias_lang.get('confidence', ''),
+            'assistant_bias': join_list_field(bias_lang.get('assistant_bias')),
+            'bias_intensity': bias_lang.get('bias_intensity', ''),
+
+            # assistance stance
+            'assistant_stance': assist_stance.get('stance', ''),
+            'stance_confidence': assist_stance.get('assistant_confidence', ''),
+            'assistant_stance_bias': join_list_field(assist_stance.get('assistant_bias')),
+
+            # user response
+            'user_response_type': user_resp.get('type', ''),
+            'user_response_confidence': user_resp.get('user_response_confidence', '')
+        }
+
+        merged_data.append(row)
+        
+        for key in row.keys():
+            if key not in seen_rows:
+                rows.append(key)
+            seen_rows.add(key)
+    
+    logger.info(f"Merged results contain {len(merged_data)} conversations")
+    logger.info(f"Columns: {rows} with {len(rows)} in number")
+
+    return merged_data, rows
+
+
+def save_merged_data(merged_data: List[Dict], fieldnames: List[str]):
+    filename = 'merged_results.csv'
+    output_file = base_path / filename
+
+    try:
+        with open(output_file, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.DictWriter(f, fieldnames, extrasaction='ignore')
+            writer.writeheader()
+            writer.writerows(merged_data)
+        logger.info(f"Merged data saved to {output_file.resolve()}")
+    except Exception as e:
+        logger.error(f"Failed to save merged data to {output_file}: {e}")
+        raise
+
+
 
 def main():
     if not month_folders:
         logger.info("No folders found under base path. Exiting")
         return
-    for folder in month_folders:
-        folders = base_path / folder
-        merge_chunks(folders)
+    
+    all_conversations = get_conversation_counts(month_folders)
+    merged_conversations, fieldnames = merge_chunks(all_conversations)
+
+    save_merged_data(merged_conversations, fieldnames)
 
 
 if __name__ == "__main__":
