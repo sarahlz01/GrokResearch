@@ -363,10 +363,17 @@ class EncodingHandler:
         """
         filename = "failed_discussion_conversations.jsonl"
         output_file = self.output_path.parent / filename
-        with open(output_file, 'a', encoding='utf-8') as f:
-            for conversation_id, data in failed_data.items():
-                entry = {
-                    'conversationId': conversation_id,
-                    **data
-                }
-                f.write(json.dumps(entry, ensure_ascii=False) + '\n')
+
+        try:
+            with codecs.open(output_file, 'a', encoding='utf-8') as f:
+                for conversation_id, data in failed_data.items():
+                    entry = {
+                        'conversationId': conversation_id,
+                        **data
+                    }
+                    f.write(json.dumps(entry, ensure_ascii=False) + '\n')
+                    logger.info(f"saved failed conversations to {output_file.resolve()}")
+        except Exception as e:
+            logger.error(f"failed to save {output_file}: {e}")
+            logger.debug(f"traceback: {traceback.format_exc()}")
+            raise

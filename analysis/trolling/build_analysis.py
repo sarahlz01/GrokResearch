@@ -94,24 +94,6 @@ class TrollAnalyzer:
             
             logger.debug(f"built conversation map with {len(conversation_map)} entries")
 
-                        # handle failed conversations
-            logger.info(f"these ids failed in batch run: {[id for id in failed_conversations]}")
-
-            if failure_info:
-                for conversation_id, failure_reason in failure_info.items():
-                    conversation = conversation_map.get(conversation_id)                  
-                    failed_conversations[conversation_id] = {
-                        'conversation': conversation,
-                        'metadata': {
-                            'chunk': chunk_id,
-                            'timestamp': datetime.now().isoformat(),
-                            'failure_reason': failure_reason
-                    }
-                    }
-
-            if failed_conversations:
-                self.storage.save_failed_conversations(failed_conversations)
-
             # validate mapping
             missing_conversations = intent_map.keys() - conversation_map.keys()
             if missing_conversations:
@@ -141,7 +123,6 @@ class TrollAnalyzer:
                             if result.get('conversationId')
                         }
                         logger.info(f"created detailed map with {len(detailed_map)} entries")
-                        logger.info(f"map preview: {detailed_map['1908036449183649903'] if detailed_map['1908036449183649903'] else ''}")
                     else:
                         logger.warning(f"no detailed analysis results for chunk {chunk_id}")
                 else:
@@ -227,7 +208,7 @@ class TrollAnalyzer:
                     failed_conversations[conversation_id] = {
                         'conversation': conversation,
                         'metadata': {
-                            'stage': 'discussion_analysis',
+                            'stage': 'analyze_trolling',
                             'chunk': chunk_id,
                             'timestamp': datetime.now().isoformat(),
                             'failure_reason': failure_reason
@@ -244,7 +225,7 @@ class TrollAnalyzer:
         except Exception as e:
             logger.error(f"detailed analysis failed for chunk {chunk_id}: {e}")
             logger.debug(f"Traceback: {traceback.format_exc()}")
-            return None # Return None to indicate failure
+            return None 
     
     
     def _analyze_trolling_intent(self, conversations: List[Dict], chunk_id: int) -> List[Dict]:
@@ -279,7 +260,7 @@ class TrollAnalyzer:
                     failed_conversations[conversation_id] = {
                         'conversation': conversation,
                         'metadata': {
-                            'stage': 'discussion_detection',
+                            'stage': 'trolling_intent',
                             'chunk': chunk_id,
                             'timestamp': datetime.now().isoformat(),
                             'failure_reason': failure_reason

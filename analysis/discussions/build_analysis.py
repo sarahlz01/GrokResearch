@@ -56,8 +56,6 @@ class DiscussionAnalyzer:
             logger.info(f"step 1: checking if conversations are discussions for chunk {chunk_id}")
             discussion_detection_result = self._analyze_conversations_for_discussion(conversations, chunk_id)
 
-
-
             if not discussion_detection_result:
                 logger.error(f"discussion detection analysis returned None for chunk {chunk_id}")
                 # return empty list consistently on hard failure
