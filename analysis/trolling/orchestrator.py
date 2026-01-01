@@ -2,7 +2,6 @@ import logging
 import time
 import traceback
 from typing import Dict, List
-from collections import Counter
 
 from build_analysis import TrollAnalyzer
 from cache import AnalysisCache

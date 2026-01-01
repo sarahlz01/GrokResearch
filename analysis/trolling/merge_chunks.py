@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 from typing import Dict, List
 
+import pandas as pd
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -90,58 +91,85 @@ def get_reply_count(folder_paths: List[Path], pattern: str = "output_raw_chunk_*
 
 def extract_replies(conversations: List[Dict]) -> List[Dict]:
     merged_data = []
-    row = {}
     
-    for conversation in conversations:        
-        # Extract trolling analysis fields
-        trolling_analysis = conversation.get('trolling_analysis', {})
-        intent = trolling_analysis.get('intent', {})
-        detailed = trolling_analysis.get('detailed') or {}
+    logger.info(f"DEBUG: Processing {len(conversations)} conversations")
+    
+    for conversation in conversations:
+        conversationId = conversation.get('conversationId', '')
         
-        # Extract intent fields
-        row['is_trolling'] = intent.get('is_trolling', '')
-        row['trolling_confidence'] = intent.get('trolling_confidence', '')
-        row['trolling_intensity'] = intent.get('trolling_intensity', '')
-        row['topic'] = intent.get('topic', '')
-        
-        # Extract detailed fields
-        row['trolling_topic'] = join_list_field(detailed.get('trolling_topic', []))
-        
-        # Extract recognition_of_troll
-        recognition = detailed.get('recognition_of_troll', {})
-        row['troll_recognition_type'] = recognition.get('type', '')
-        row['troll_recognition_confidence'] = recognition.get('confidence', '')
-        row['troll_recognition_explanation'] = recognition.get('explanation', '')
-        
-        # Extract trolling_category
-        category = detailed.get('trolling_category', {})
-        row['trolling_category_type'] = category.get('type', '')
-        row['trolling_category_confidence'] = category.get('confidence', '')
-        row['trolling_category_explanation'] = category.get('explanation', '')
-        
-        # Extract response_strategy
-        strategy = detailed.get('response_strategy', {})
-        row['response_strategy_type'] = join_list_field(strategy.get('type', []))
-        row['response_strategy_confidence'] = strategy.get('confidence', '')
-        row['response_strategy_explanation'] = strategy.get('explanation', '')
-        
-        # Extract assistant_tone
-        tone = detailed.get('assistant_tone', {})
-        row['assistant_tone_type'] = join_list_field(tone.get('type', []))
-        row['assistant_tone_confidence'] = tone.get('confidence', '')
-        row['assistant_tone_explanation'] = tone.get('explanation', '')
-        
-        # Extract endorsement_of_troll
-        endorsement = detailed.get('endorsement_of_troll', {})
-        row['endorsement_type'] = endorsement.get('type', '')
-        row['endorsement_confidence'] = endorsement.get('confidence', '')
-        row['endorsement_explanation'] = endorsement.get('explanation', '')
-        
-        # Extract amplification_of_harmful_content
-        amplification = detailed.get('amplification_of_harmful_content', {})
-        row['amplification_type'] = amplification.get('type', '')
-        row['amplification_confidence'] = amplification.get('confidence', '')
-        row['amplification_explanation'] = amplification.get('explanation', '')
+        # Detect which structure we have
+        if 'analysis' in conversation:
+            # NEW/CURRENT STRUCTURE (Months 1-9) - FLAT
+            analysis = conversation.get('analysis', {})
+            
+            intent_data = {
+                'is_trolling': analysis.get('is_trolling', ''),
+                'trolling_confidence': analysis.get('trolling_confidence', ''),
+                'trolling_intensity': analysis.get('trolling_intensity', ''),
+                'topic': analysis.get('topic', ''),
+                'trolling_topic': join_list_field(analysis.get('trolling_topic', []))
+            }
+            
+            recognition = analysis.get('recognition_of_troll', {})
+            category = analysis.get('trolling_category', {})
+            strategy = analysis.get('response_strategy', {})
+            tone = analysis.get('assistant_tone', {})
+            endorsement = analysis.get('endorsement_of_troll', {})
+            amplification = analysis.get('amplification_of_harmful_content', {})
+            
+        elif 'trolling_analysis' in conversation:
+            # OLD STRUCTURE (Month 10) - NESTED with intent/detailed
+            trolling_analysis = conversation.get('trolling_analysis', {})
+            intent = trolling_analysis.get('intent', {})
+            detailed = trolling_analysis.get('detailed') or {}
+            
+            intent_data = {
+                'is_trolling': intent.get('is_trolling', ''),
+                'trolling_confidence': intent.get('trolling_confidence', ''),
+                'trolling_intensity': intent.get('trolling_intensity', ''),
+                'topic': intent.get('topic', ''),
+                'trolling_topic': join_list_field(detailed.get('trolling_topic', []))
+            }
+            
+            recognition = detailed.get('recognition_of_troll', {})
+            category = detailed.get('trolling_category', {})
+            strategy = detailed.get('response_strategy', {})
+            tone = detailed.get('assistant_tone', {})
+            endorsement = detailed.get('endorsement_of_troll', {})
+            amplification = detailed.get('amplification_of_harmful_content', {})
+            
+        else:
+            logger.warning(f"Unknown structure: {conversation.keys()}")
+            continue
+
+        row = {
+            'conversationId': conversationId,
+            **intent_data,
+            
+            'troll_recognition_type': recognition.get('type', ''),
+            'troll_recognition_confidence': recognition.get('confidence', ''),
+            'troll_recognition_explanation': recognition.get('explanation', ''),
+            
+            'trolling_category_type': category.get('type', ''),
+            'trolling_category_confidence': category.get('confidence', ''),
+            'trolling_category_explanation': category.get('explanation', ''),
+            
+            'response_strategy_type': join_list_field(strategy.get('type', [])),
+            'response_strategy_confidence': strategy.get('confidence', ''),
+            'response_strategy_explanation': strategy.get('explanation', ''),
+            
+            'assistant_tone_type': join_list_field(tone.get('type', [])),
+            'assistant_tone_confidence': tone.get('confidence', ''),
+            'assistant_tone_explanation': tone.get('explanation', ''),
+            
+            'endorsement_type': endorsement.get('type', ''),
+            'endorsement_confidence': endorsement.get('confidence', ''),
+            'endorsement_explanation': endorsement.get('explanation', ''),
+            
+            'amplification_type': amplification.get('type', ''),
+            'amplification_confidence': amplification.get('confidence', ''),
+            'amplification_explanation': amplification.get('explanation', '')
+        }
         
         merged_data.append(row)
     
@@ -149,20 +177,39 @@ def extract_replies(conversations: List[Dict]) -> List[Dict]:
     return merged_data
 
 
+# def save_merged_data(merged_data: List[Dict], fieldnames: List[str]):
+#     filename = 'merged_results.csv'
+#     output_file = base_path / filename
+
+#     try:
+#         df = pd.DataFrame(merged_data)
+        
+#         # Replace empty strings with actual empty strings (prevents NaN conversion)
+#         df = df.replace('', pd.NA)  # Or use df.fillna('')
+        
+#         logger.info(f"Data contains the following columns: {df.columns.to_list()}")
+#         logger.info(f"First row sample: {df.iloc[0].to_dict()}")  # ← ADD THIS
+        
+#         df.to_csv(output_file, index=False, na_rep='')  # ← ADD na_rep=''
+#         logger.info(f"Merged data saved to {output_file.resolve()}")
+#     except Exception as e:
+#         logger.error(f"Failed to save merged data to {output_file}: {e}")
+#         raise
+
 def save_merged_data(merged_data: List[Dict], fieldnames: List[str]):
     filename = 'merged_results.csv'
     output_file = base_path / filename
 
     try:
         with open(output_file, 'w', newline='', encoding='utf-8') as f:
-            writer = csv.DictWriter(f, fieldnames, extrasaction='ignore')
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
             writer.writerows(merged_data)
+        
         logger.info(f"Merged data saved to {output_file.resolve()}")
     except Exception as e:
         logger.error(f"Failed to save merged data to {output_file}: {e}")
         raise
-
 
 def main():
     if not month_folders:

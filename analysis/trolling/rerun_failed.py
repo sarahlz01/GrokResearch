@@ -7,7 +7,7 @@ from typing import Dict, List
 
 import ijson
 from batch import BatchManager
-from build_analysis import DiscussionAnalyzer
+from build_analysis import TrollAnalyzer
 from cache import AnalysisCache
 from config import AnalysisConfig
 from dotenv import load_dotenv
@@ -19,7 +19,9 @@ load_dotenv()
 
 # pass conversation to the orchestartor with chunk_id 0, change path from env to 2025_00
 
-JSONL_PATH = os.getenv("FAILED_PATH_DISCUSSION")
+
+JSONL_PATH = os.getenv("FAILED_PATH_TROLLING_1")
+JSON_PATH = os.getenv("FAILED_PATH_TROLLING_2")
 CONVERSATION_PRIME = os.getenv("CONVERSATION_PRIME") # all conversations from march to october
 
 logger = logging.getLogger(__name__)
@@ -40,12 +42,29 @@ def extract_jsonl_ids(jsonl_file: Path) -> List[str]:
                 if conv_id:
                     conversation_ids.append(conv_id)
                 else:
-                    logger.info(f"Line {line_num}: No conversationId found")
+                    logger.info(f"line {line_num}: No conversationId found")
                     
             except json.JSONDecodeError as e:
-                logger.info(f"Line {line_num}: Failed to parse JSON - {e}")
+                logger.info(f"line {line_num}: Failed to parse JSON - {e}")
                 continue
     
+    return conversation_ids
+
+def extract_json_ids(json_file: Path) -> List[str]:
+    conversation_ids = []
+    with open(json_file, 'r', encoding='utf-8') as f:
+        try:
+            results = json.load(f)
+            if 'conversations' in results:
+                conversations = results['conversations']
+                for conv in conversations:
+                    conv_id = conv.get('conversationId')
+                    if conv_id:
+                        conversation_ids.append(conv_id)
+                    else:
+                        logger.info(f"No conversationId found")
+        except json.JSONDecodeError as e:
+            logger.info(f"Failed to parse JSON - {e}")
     return conversation_ids
 
 def stream_and_filter_conversations(failed_ids: List):
@@ -76,35 +95,41 @@ def main():
     script_start = time.time()
     config = AnalysisConfig()
     cache = AnalysisCache(config)
-    prompts = Prompts()
+    prompt = Prompts()
     storage = EncodingHandler(config, cache)
 
-    batch = BatchManager(config, prompts, cache)
-    discussion_analyzer = DiscussionAnalyzer(config, cache, prompts, storage, batch)
-    orchestrator = Orchestrator(config, storage, discussion_analyzer, cache)
+    batch = BatchManager(config, prompt, cache)
+    troll_analyzer = TrollAnalyzer(config, cache, prompt, storage, batch)
+    orchestrator = Orchestrator(config, storage, troll_analyzer, cache)
 
 
     failed_ids = []
+
     jsonl_ids = extract_jsonl_ids(JSONL_PATH)
 
     logger.info(f"first failed batch has: {len(jsonl_ids)} conversations")
     failed_ids.extend(jsonl_ids)
+    
+    json_ids = extract_json_ids(JSON_PATH)
+    logger.info(f"second failed batch has: {len(json_ids)} conversations")
+
+    failed_ids.extend(json_ids)
 
     logger.info(f"found {len(failed_ids)} conversation IDs")
     logger.info(f"first 5 IDs: {failed_ids[:5]}")
 
-    # stream and filter data
+    # stream data
     failed_conversation_map = stream_and_filter_conversations(failed_ids)
     
     logger.info("starting failure analysis...")
-    result = orchestrator.analyze_discussion_interactions(failed_conversation_map, chunk_id=0)
+    result = orchestrator.analyze_troll_interactions(failed_conversation_map, chunk_id=0)
     
     total_time = time.time() - script_start
     logger.info(f"PIPELINE COMPLETED SUCCESSFULLY")
     logger.info(f"Total execution time: {total_time:.2f}s")
     logger.info(f"Processed {result['metadata']['processed_conversations']} conversations")
-    logger.info(f"Detected {result['metadata']['discussion_conversations_detected']} discussions")
-        
+    logger.info(f"Detected {result['metadata']['trolling_conversations_detected']} trolling conversations")
+    
 
 if __name__ == "__main__":
     main()
