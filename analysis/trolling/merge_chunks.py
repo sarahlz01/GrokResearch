@@ -97,9 +97,7 @@ def extract_replies(conversations: List[Dict]) -> List[Dict]:
     for conversation in conversations:
         conversationId = conversation.get('conversationId', '')
         
-        # Detect which structure we have
         if 'analysis' in conversation:
-            # NEW/CURRENT STRUCTURE (Months 1-9) - FLAT
             analysis = conversation.get('analysis', {})
             
             intent_data = {
@@ -118,7 +116,6 @@ def extract_replies(conversations: List[Dict]) -> List[Dict]:
             amplification = analysis.get('amplification_of_harmful_content', {})
             
         elif 'trolling_analysis' in conversation:
-            # OLD STRUCTURE (Month 10) - NESTED with intent/detailed
             trolling_analysis = conversation.get('trolling_analysis', {})
             intent = trolling_analysis.get('intent', {})
             detailed = trolling_analysis.get('detailed') or {}
@@ -176,25 +173,6 @@ def extract_replies(conversations: List[Dict]) -> List[Dict]:
     logger.info(f"Extracted {len(merged_data)} replies with {len(FIELDNAMES)} fields")
     return merged_data
 
-
-# def save_merged_data(merged_data: List[Dict], fieldnames: List[str]):
-#     filename = 'merged_results.csv'
-#     output_file = base_path / filename
-
-#     try:
-#         df = pd.DataFrame(merged_data)
-        
-#         # Replace empty strings with actual empty strings (prevents NaN conversion)
-#         df = df.replace('', pd.NA)  # Or use df.fillna('')
-        
-#         logger.info(f"Data contains the following columns: {df.columns.to_list()}")
-#         logger.info(f"First row sample: {df.iloc[0].to_dict()}")  # ← ADD THIS
-        
-#         df.to_csv(output_file, index=False, na_rep='')  # ← ADD na_rep=''
-#         logger.info(f"Merged data saved to {output_file.resolve()}")
-#     except Exception as e:
-#         logger.error(f"Failed to save merged data to {output_file}: {e}")
-#         raise
 
 def save_merged_data(merged_data: List[Dict], fieldnames: List[str]):
     filename = 'merged_results.csv'

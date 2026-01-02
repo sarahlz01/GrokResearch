@@ -48,7 +48,7 @@ def extract_jsonl_ids(jsonl_file: Path) -> List[str]:
     
     return conversation_ids
 
-def stream_and_filter_conversations(failed_ids: List):
+def stream_and_filter_conversations(failed_ids: List) -> List[Dict]:
     matched = []
     processed = 0
     with open(CONVERSATION_PRIME, 'rb') as f:

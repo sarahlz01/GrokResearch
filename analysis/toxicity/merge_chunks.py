@@ -72,7 +72,7 @@ def get_reply_count(folder_paths: List[Path], pattern: str = "output_raw_chunk_*
     return all_months
 
 
-def extract_replies(replies: List[Dict]) -> tuple[List[Dict], List[str]]:
+def extract_replies(replies: List[Dict]) -> List[Dict]:
     merged_data = [
         {
             'conversationId': reply.get('conversationId', ''),

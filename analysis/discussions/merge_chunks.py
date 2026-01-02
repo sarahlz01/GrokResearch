@@ -17,13 +17,32 @@ logging.basicConfig(
 )
 OUTPUT_PATH = os.getenv("OUTPUT_PATH_DISCUSSION")
 
+FIELDNAMES = [
+    'conversationId',
+    'is_discussion',
+    'discussion_confidence',
+    'discussion_intensity',
+    'discussion_type',
+    'topic',
+    'bias_language',
+    'bias_examples',
+    'bias_confidence',
+    'assistant_bias',
+    'bias_intensity',
+    'assistant_stance',
+    'stance_confidence',
+    'assistant_stance_bias',
+    'user_response_type',
+    'user_response_confidence'
+]
+
 output_path = Path(OUTPUT_PATH)
 base_path = output_path.parent
 
 logger.info(f"OUTPUT_PATH: {output_path}")
 logger.info(f"BASE_PATH (parent): {base_path}")
 
-# get all month folders (2025_03 through 2025_09)
+# get all month folders (2025_03 through 2025_10)
 month_folders = [f for f in os.listdir(base_path) if f.startswith('discussion_analysis_2025_')]
 month_folders.sort()
 
@@ -67,33 +86,36 @@ def get_conversation_counts(folder_paths: List[Path], pattern: str = "report_chu
 
 def merge_chunks(conversations: List[Dict]):
     merged_data = []
-    rows = []
-    seen_rows = set()
 
     for conversation in conversations:
+        conversation_id = conversation.get("conversationId")
+
         discussion_analysis = conversation.get('discussion_analysis', {})
         intent = discussion_analysis.get('intent', {})
+
         detailed = discussion_analysis.get('detailed') or {}
         bias_lang = detailed.get('bias_language', {})
         assist_stance = detailed.get('assistant_stance', {})
         user_resp = detailed.get('user_response', {})
 
-        # build row
-        row = {
-            # ID
-            'conversationId': intent.get('conversationId', ''),
-
+        intent_data = {
             # intent values
             'is_discussion': intent.get('is_discussion', ''),
             'discussion_confidence': intent.get('discussion_confidence', ''),
             'discussion_intensity': intent.get('discussion_intensity', ''),
-            'disucssion_type': intent.get('discussion_type', ''),
+            'discussion_type': join_list_field(intent.get('discussion_type')),
             'topic': intent.get('topic', ''),
+        }
+        
+        # build row
+        row = {
+            'conversationId': conversation_id,
+            **intent_data,
             
             # bias values
             'bias_language': bias_lang.get('bias_language', ''),
             'bias_examples': join_list_field(bias_lang.get('examples')),
-            'bias_confidence': bias_lang.get('confidence', ''),
+            'bias_confidence': bias_lang.get('bias_confidence', ''),
             'assistant_bias': join_list_field(bias_lang.get('assistant_bias')),
             'bias_intensity': bias_lang.get('bias_intensity', ''),
 
@@ -109,15 +131,9 @@ def merge_chunks(conversations: List[Dict]):
 
         merged_data.append(row)
         
-        for key in row.keys():
-            if key not in seen_rows:
-                rows.append(key)
-            seen_rows.add(key)
-    
     logger.info(f"Merged results contain {len(merged_data)} conversations")
-    logger.info(f"Columns: {rows} with {len(rows)} in number")
 
-    return merged_data, rows
+    return merged_data
 
 
 def save_merged_data(merged_data: List[Dict], fieldnames: List[str]):
@@ -142,9 +158,9 @@ def main():
         return
     
     all_conversations = get_conversation_counts(month_folders)
-    merged_conversations, fieldnames = merge_chunks(all_conversations)
+    merged_conversations = merge_chunks(all_conversations)
 
-    save_merged_data(merged_conversations, fieldnames)
+    save_merged_data(merged_conversations, FIELDNAMES)
 
 
 if __name__ == "__main__":
