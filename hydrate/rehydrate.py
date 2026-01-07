@@ -12,7 +12,7 @@ Hydrate a dehydrated dataset back to the full (released) schema.
 - Preserves computed flags and any existing (non-text) annotations.
 
 Run:
-    python hydrate.py --in ./dehydrated.json --out ./hydrated.json
+    python rehydrate.py --in ./dehydrated.json --out ./hydrated.json
 """
 
 import argparse
