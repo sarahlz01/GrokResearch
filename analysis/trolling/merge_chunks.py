@@ -1,3 +1,4 @@
+import codecs
 import csv
 import json
 import logging
@@ -47,13 +48,13 @@ OUTPUT_PATH = os.getenv("OUTPUT_PATH_TROLLING")
 
 output_path = Path(OUTPUT_PATH)
 base_path = output_path.parent
-toxic_start_path = 'trolling_analysis_2025_'
+trolling_start_path = 'trolling_analysis_2025_'
 
 logger.info(f"OUTPUT_PATH: {output_path}")
 logger.info(f"BASE_PATH (parent): {base_path}")
 
 # get all month folders (2025_03 through 2025_10)
-month_folders = [f for f in os.listdir(base_path) if f.startswith(toxic_start_path)]
+month_folders = [f for f in os.listdir(base_path) if f.startswith(trolling_start_path)]
 month_folders.sort()
 
 logger.info(f"Found {len(month_folders)} folders: {month_folders}")
@@ -80,11 +81,11 @@ def get_reply_count(folder_paths: List[Path], pattern: str = "output_raw_chunk_*
                     if 'analysis_results' in data:
                         results = data['analysis_results']                    
                         all_months.extend(results)
-                        logger.info(f"{file.name} has {len(results)} replies")
+                        logger.info(f"{file.name} has {len(results)} conversations")
             except Exception as e:
                 logger.info(f"Skipping due to {e}")
         
-    logger.info(f"Found total of {len(all_months)} replies")
+    logger.info(f"Found total of {len(all_months)} conversations")
 
     return all_months
 
@@ -96,12 +97,16 @@ def extract_replies(conversations: List[Dict]) -> List[Dict]:
     
     for conversation in conversations:
         conversationId = conversation.get('conversationId', '')
-        
+
         if 'analysis' in conversation:
             analysis = conversation.get('analysis', {})
+            is_trolling = analysis.get('is_trolling', '')
+            
+            if is_trolling != 'yes':
+                continue
             
             intent_data = {
-                'is_trolling': analysis.get('is_trolling', ''),
+                'is_trolling': is_trolling,
                 'trolling_confidence': analysis.get('trolling_confidence', ''),
                 'trolling_intensity': analysis.get('trolling_intensity', ''),
                 'topic': analysis.get('topic', ''),
@@ -120,8 +125,13 @@ def extract_replies(conversations: List[Dict]) -> List[Dict]:
             intent = trolling_analysis.get('intent', {})
             detailed = trolling_analysis.get('detailed') or {}
             
+            is_trolling = intent.get('is_trolling', '')
+            
+            if is_trolling != 'yes':
+                continue
+            
             intent_data = {
-                'is_trolling': intent.get('is_trolling', ''),
+                'is_trolling': is_trolling,
                 'trolling_confidence': intent.get('trolling_confidence', ''),
                 'trolling_intensity': intent.get('trolling_intensity', ''),
                 'topic': intent.get('topic', ''),
@@ -173,9 +183,8 @@ def extract_replies(conversations: List[Dict]) -> List[Dict]:
     logger.info(f"Extracted {len(merged_data)} replies with {len(FIELDNAMES)} fields")
     return merged_data
 
-
 def save_merged_data(merged_data: List[Dict], fieldnames: List[str]):
-    filename = 'merged_results.csv'
+    filename = 'trolling_merged_results.csv'
     output_file = base_path / filename
 
     try:
@@ -189,6 +198,19 @@ def save_merged_data(merged_data: List[Dict], fieldnames: List[str]):
         logger.error(f"Failed to save merged data to {output_file}: {e}")
         raise
 
+def saved_merged_data_json(merged_data: List[Dict]):
+    filename = 'trolling_merged_results.json'
+    output_file = base_path / filename
+
+    try:
+        with codecs.open(output_file, 'w', encoding='utf-8') as f:
+            json.dump(merged_data, f, indent=2, ensure_ascii=False)
+        logger.info(f"Merged data saved to {output_file.resolve()}")
+    except Exception as e:
+        logger.error(f"failed to save {output_file}: {e}")
+        raise
+    
+
 def main():
     if not month_folders:
         logger.info("No folders found under base path. Exiting")
@@ -198,6 +220,7 @@ def main():
     merged_data = extract_replies(all_conversations)
 
     save_merged_data(merged_data=merged_data, fieldnames=FIELDNAMES)
+    saved_merged_data_json(merged_data=merged_data)
 
 
 if __name__ == "__main__":

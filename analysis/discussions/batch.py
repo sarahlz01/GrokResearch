@@ -133,7 +133,7 @@ class BatchManager:
             except APIError as e:
                 logger.warning(f"API Error while polling job {job.name}. Retrying in 30s. Error: {e}")
 
-            time.sleep(2000)
+            time.sleep(500)
 
     def handle_results(self, job: types.BatchJob) -> List[Dict]:
         if not job.dest or not job.dest.file_name:

@@ -1,3 +1,4 @@
+import codecs
 import csv
 import json
 import logging
@@ -38,12 +39,13 @@ FIELDNAMES = [
 
 output_path = Path(OUTPUT_PATH)
 base_path = output_path.parent
+trolling_start_path = 'discussion_analysis_2025_'
 
 logger.info(f"OUTPUT_PATH: {output_path}")
 logger.info(f"BASE_PATH (parent): {base_path}")
 
 # get all month folders (2025_03 through 2025_10)
-month_folders = [f for f in os.listdir(base_path) if f.startswith('discussion_analysis_2025_')]
+month_folders = [f for f in os.listdir(base_path) if f.startswith(trolling_start_path)]
 month_folders.sort()
 
 logger.info(f"Found {len(month_folders)} folders: {month_folders}")
@@ -92,11 +94,16 @@ def merge_chunks(conversations: List[Dict]):
 
         discussion_analysis = conversation.get('discussion_analysis', {})
         intent = discussion_analysis.get('intent', {})
+        is_discussion = intent.get('is_discussion', '')
+        
+        if is_discussion != 'yes':
+            continue
 
         detailed = discussion_analysis.get('detailed') or {}
         bias_lang = detailed.get('bias_language', {})
         assist_stance = detailed.get('assistant_stance', {})
         user_resp = detailed.get('user_response', {})
+
 
         intent_data = {
             # intent values
@@ -136,8 +143,8 @@ def merge_chunks(conversations: List[Dict]):
     return merged_data
 
 
-def save_merged_data(merged_data: List[Dict], fieldnames: List[str]):
-    filename = 'merged_results.csv'
+def save_merged_data_csv(merged_data: List[Dict], fieldnames: List[str]):
+    filename = 'discussions_merged_results.csv'
     output_file = base_path / filename
 
     try:
@@ -150,6 +157,17 @@ def save_merged_data(merged_data: List[Dict], fieldnames: List[str]):
         logger.error(f"Failed to save merged data to {output_file}: {e}")
         raise
 
+def saved_merged_data_json(merged_data: List[Dict], fieldnames: List[str]):
+    filename = 'discussions_merged_results.json'
+    output_file = base_path / filename
+
+    try:
+        with codecs.open(output_file, 'w', encoding='utf-8') as f:
+            json.dump(merged_data, f, indent=2, ensure_ascii=False)
+        logger.info(f"Merged data saved to {output_file.resolve()}")
+    except Exception as e:
+        logger.error(f"failed to save {output_file}: {e}")
+        raise
 
 
 def main():
@@ -160,7 +178,8 @@ def main():
     all_conversations = get_conversation_counts(month_folders)
     merged_conversations = merge_chunks(all_conversations)
 
-    save_merged_data(merged_conversations, FIELDNAMES)
+    save_merged_data_csv(merged_conversations, FIELDNAMES)
+    saved_merged_data_json(merged_conversations, FIELDNAMES)
 
 
 if __name__ == "__main__":

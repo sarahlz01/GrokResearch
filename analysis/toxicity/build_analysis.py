@@ -24,7 +24,7 @@ class ToxicityAnalzyer:
 
 
     async def analyze_single_reply(self, reply_item: dict) -> Dict:
-        text = reply_item.get('reply', '')
+        text = reply_item.get('user_message', '')
         conversation_id = reply_item.get('conversationId')
         thread_id = reply_item.get('threadId', 'N/A')
         role = reply_item.get('role', '')
@@ -84,22 +84,23 @@ class ToxicityAnalzyer:
         return {
             'conversationId': conversation_id,
             'threadId': thread_id,
-            'grok_reply': text,
+            # 'grok_reply': text,
+            'user_message': text,
             'language': language,
             'toxicity_score': final_score,
             'category': final_category,
             'role': role
         }
 
-    def _get_individual_replies_for_task(self, conversation: dict) -> List[Dict]:
+    def _get_individual_replies_for_task(self, conversation: Dict) -> List[Dict]:
         replies_to_analyze = []
         conversation_id = conversation.get('conversationId')
 
         if 'threads' in conversation:
-            for thread in conversation.get('threads', []):
-                for tweet_data in thread.get('tweets', []):
-                    author = tweet_data.get("authorName", '')
-                    text = tweet_data.get('text', '')
+            for threads in conversation.get('threads', []):
+                for thread in threads.get('tweets', []):
+                    author = thread.get("authorName", '')
+                    text = thread.get('text', '')
 
                     if not author or not text:
                         continue
@@ -113,6 +114,40 @@ class ToxicityAnalzyer:
                             'conversationId': conversation_id
                         })
         return replies_to_analyze
+
+    def _get_immediate_user_message(self, conversation: Dict) -> List[Dict]:
+        user_grok_pairs = []
+        conversation_id = conversation.get('conversationId')
+
+        if 'threads' in conversation:
+            for threads in conversation.get('threads', []):
+                tweets = threads.get('tweets', [])
+                
+                for i, tweet in enumerate(tweets):
+                    author = tweet.get('authorName', '')
+                    text = tweet.get('text', '')
+                    
+                    # When we find a Grok reply
+                    if author in ["<ASSISTANT>", "Grok", "ASSISTANT"]:
+                        # Get the immediate previous user message
+                        user_msg = None
+                        if i > 0:
+                            prev_tweet = tweets[i-1]
+                            prev_author = prev_tweet.get('authorName', '')
+                            if prev_author not in ["<ASSISTANT>", "Grok", "ASSISTANT"]:
+                                user_msg = prev_tweet.get('text', '')
+                        
+                        user_grok_pairs.append({
+                            'role': 'user',
+                            'user_message': user_msg,
+                            'grok_reply': text,
+                            'threadId': threads.get('threadId', 'N/A'),
+                            'conversationId': conversation_id
+                        })
+        
+        return user_grok_pairs
+
+                     
 
 
 

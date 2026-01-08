@@ -40,7 +40,8 @@ class Orchestrator:
                     if chunk_id is not None and i % self.number_of_chunks != (chunk_id - 1):
                         continue
 
-                    replies = self.toxicity_analyzer._get_individual_replies_for_task(conversation)
+                    # replies = self.toxicity_analyzer._get_individual_replies_for_task(conversation)
+                    replies = self.toxicity_analyzer._get_immediate_user_message(conversation)
 
                     if replies:
                         for reply_data in replies:
