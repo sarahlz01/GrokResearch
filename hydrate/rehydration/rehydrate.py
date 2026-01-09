@@ -311,8 +311,8 @@ def write_hydrated(
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--in", dest="in_path", required=True, help="Input dehydrated.json")
-    ap.add_argument("--out", dest="out_path", required=True, help="Output hydrated.json")
+    ap.add_argument("--in", dest="in_path", default="./rehydration/dehydrated.json", help="Input dehydrated.json")
+    ap.add_argument("--out", dest="out_path", default="./rehydration/hydrated.json", help="Output hydrated.json")
 
     # Engagement mode
     ap.add_argument(
