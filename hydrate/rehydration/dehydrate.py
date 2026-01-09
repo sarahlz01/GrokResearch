@@ -156,7 +156,6 @@ def convert_thread(thread: Dict[str, Any], conversation_id: str) -> Dict[str, An
     out["truncatedThread"] = truncated
     out["validTweetCount"] = len(tweets_in)
     out["deletedTweetCount"] = 0
-    out["annotations"] = {}
     out["tweets"] = [convert_tweet(tw) for tw in tweets_in]
 
     return out
