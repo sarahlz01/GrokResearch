@@ -41,7 +41,7 @@ or
 - Logs can be viewed under `./GrokResearch/hydrate/hydration/logs`
 - If you cancel the hydration at any point, you may need to fix the JSON file at the end by appending a `]` to close the array
 
-### To run the **Hydrate** (different than rehydrating) code, run the following commands
+## To run the **Hydrate** (different than rehydrating) code, run the following commands
 
 - Make sure python version is 3.11.5 or 3.11.6
 - From ./GrokResearch: Create a `.env` and set up the environment variable as follows `TWITTERIO_API_KEY="key"` & `HYDRA_FULL_ERROR=1` & `GROK_DB_PATH="grok_data/grok.sqlite3"`
