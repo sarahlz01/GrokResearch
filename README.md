@@ -27,6 +27,7 @@ To rehydrate the entire dataset:
 `python3 -m rehydration.rehydrate` in the `/GrokResearch/hydrate/` directory
 
 To rehydrate specific threads from the data set, then you can run:
+
 `python3 -m rehydration.rehydrate --thread-ids 111111111111,22222222`
 
 or
