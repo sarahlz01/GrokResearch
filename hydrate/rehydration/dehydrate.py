@@ -22,6 +22,10 @@ isAssistant (revised):
 
 Output:
 - Pretty-printed JSON array to dehydrated.json (streaming, constant memory).
+
+NOTE:
+- This version ALWAYS includes tweet["text"] in the dehydrated output.
+  (You can strip it later after toxicity merge.)
 """
 
 import argparse
@@ -102,6 +106,10 @@ def convert_tweet(tweet: Dict[str, Any]) -> Dict[str, Any]:
     out["inReplyToId"] = str(tweet.get("inReplyToId") or "")
     out["createdAt"] = tweet.get("createdAt") or ""
     out["lang"] = tweet.get("lang") or ""
+
+    # ✅ ALWAYS keep original text (strip later after toxicity merge)
+    out["text"] = tweet.get("text") or ""
+
     out["isMediaOnly"] = _is_media_only_links(tweet)
 
     out["likeCount"] = _safe_int(tweet.get("likeCount"), 0)
