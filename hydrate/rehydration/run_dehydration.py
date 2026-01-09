@@ -124,7 +124,7 @@ def main():
     p2 = out_dir / "dehydrated_toxicity.json"  # <-- strip BOTH text + cleaned_text here
     p3 = out_dir / "dehydrated_toxicity_topics.json"
     p4 = out_dir / "dehydrated_toxicity_topics_trolling.json"
-    p5 = out_dir / "dehydrated_toxicity_topics_trolling_discussion.json"
+    p5 = base_dir / "dehydrated.json"
 
     py = sys.executable  # uses your venv python if activated
 
