@@ -28,7 +28,9 @@ To rehydrate the entire dataset:
 
 To rehydrate specific threads from the data set, then you can run:
 `python3 -m rehydration.rehydrate --thread-ids 111111111111,22222222`
+
 or
+
 `python3 -m rehydration.rehydrate --thread-ids-file ./rehydration/thread_ids.json`
 
 ### Notes
