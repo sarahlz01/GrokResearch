@@ -47,6 +47,37 @@ from cleaning.clean_threads import clean_text_with_map, GROK_USER_ID
 # ------------------------------------------------------------
 # Utilities
 # ------------------------------------------------------------
+TWEET_KEY_ORDER = [
+    "id",
+    "inReplyToId",
+    "text",
+    "cleaned_text",     # only if you decide to include it
+    "original_text",
+    "toxicity",
+    "likeCount",
+    "retweetCount",
+    "replyCount",
+    "quoteCount",
+    "viewCount",
+    "bookmarkCount",
+    "createdAt",
+    "lang",
+]
+
+def order_keys(obj: Dict[str, Any], priority: List[str]) -> Dict[str, Any]:
+    """
+    Return a new dict with keys in `priority` first (if present),
+    then all remaining keys in their existing order.
+    """
+    out: Dict[str, Any] = {}
+    for k in priority:
+        if k in obj:
+            out[k] = obj[k]
+    for k, v in obj.items():
+        if k not in out:
+            out[k] = v
+    return out
+
 
 def _as_str(x: Any) -> str:
     if x is None:
@@ -217,6 +248,7 @@ def build_hydrated_tweet(
     if preserved_is_media_only is not None:
         hydrated["isMediaOnly"] = preserved_is_media_only
 
+    hydrated = order_keys(hydrated, TWEET_KEY_ORDER)
     return hydrated
 
 
