@@ -17,6 +17,7 @@ All of these are relative to `./GrokResearch/hydrate/`
 - `--in`: Path to `dehydrated.json` (default: `./rehydration/dehydrated.json`)
 - `--out`: Output path for hydrated JSON (default: `./rehydration/hydrated.json`)
 - `--no-update-engagement`: Do **not** update the dehydrated engagement counts with the most recent counts from the API
+- `--refresh-all`: Refresh ALL non-annotated fields from API (including original_text). Preserves annotated and computed fields.
 - `--log-every`: Log progress every N conversations (default: `10,000`)
 - `--thread-ids`: Only rehydrate specific threadIDs (comma separated IDs, no whitespace)
 - `--thread-ids-file`: Rehydrate specific threadIDs using a JSON file containing the IDs (refer to `/GrokResearch/hydrate/hydration/thread_ids_example.json`) for an example
