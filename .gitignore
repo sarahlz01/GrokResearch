@@ -21,3 +21,6 @@ notes.md
 failed_discussion_conversations.jsonl
 batch_files/
 .vscode/
+full_rehydrated.json
+o.json
+run_annotate.py
