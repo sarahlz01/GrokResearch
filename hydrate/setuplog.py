@@ -9,7 +9,7 @@ class _FileLineFilter(logging.Filter):
         return True
 
 def setup_logging(run_name: str = "run", log_dir: str = "logs",
-                  level: str | None = None, to_stdout: bool = True):
+                  level: str | None = None, to_stdout: bool = False):
     root = logging.getLogger()
     if root.handlers:
         return Path(os.getenv("RUN_LOG_PATH", "")) if os.getenv("RUN_LOG_PATH") else None

@@ -15,3 +15,12 @@ annotations/
 hydrated.json
 dehydrated.json
 grok_data_merged_copy/
+hydrated.json
+DISCUSSION.MD
+notes.md
+failed_discussion_conversations.jsonl
+batch_files/
+.vscode/
+full_rehydrated.json
+o.json
+run_annotate.py

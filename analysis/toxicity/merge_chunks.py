@@ -1,3 +1,4 @@
+import codecs
 import csv
 import json
 import logging
@@ -72,7 +73,7 @@ def get_reply_count(folder_paths: List[Path], pattern: str = "output_raw_chunk_*
     return all_months
 
 
-def extract_replies(replies: List[Dict]) -> tuple[List[Dict], List[str]]:
+def extract_replies(replies: List[Dict]) -> List[Dict]:
     merged_data = [
         {
             'conversationId': reply.get('conversationId', ''),
@@ -83,15 +84,15 @@ def extract_replies(replies: List[Dict]) -> tuple[List[Dict], List[str]]:
             'category': reply.get('category', ''),
             'role': reply.get('role', '')
         }
-        for reply in replies
+        for reply in replies if reply.get('category', '') != 'non_toxic'
     ]
     
     logger.info(f"Extracted {len(merged_data)} replies with {len(FIELDNAMES)} fields")
     return merged_data
 
 
-def save_merged_data(merged_data: List[Dict], fieldnames: List[str]):
-    filename = 'merged_results.csv'
+def save_merged_data_csv(merged_data: List[Dict], fieldnames: List[str]):
+    filename = 'toxicity_merged_results.csv'
     output_file = base_path / filename
 
     try:
@@ -104,6 +105,18 @@ def save_merged_data(merged_data: List[Dict], fieldnames: List[str]):
         logger.error(f"Failed to save merged data to {output_file}: {e}")
         raise
 
+def saved_merged_data_json(merged_data: List[Dict]):
+    filename = 'toxicity_merged_results.json'
+    output_file = base_path / filename
+
+    try:
+        with codecs.open(output_file, 'w', encoding='utf-8') as f:
+            json.dump(merged_data, f, indent=2, ensure_ascii=False)
+        logger.info(f"Merged data saved to {output_file.resolve()}")
+    except Exception as e:
+        logger.error(f"failed to save {output_file}: {e}")
+        raise
+
 
 def main():
     if not month_folders:
@@ -113,7 +126,8 @@ def main():
     all_conversations = get_reply_count(month_folders)
     merged_data = extract_replies(all_conversations)
 
-    save_merged_data(merged_data=merged_data, fieldnames=FIELDNAMES)
+    save_merged_data_csv(merged_data=merged_data, fieldnames=FIELDNAMES)
+    saved_merged_data_json(merged_data=merged_data)
 
 
 if __name__ == "__main__":

@@ -69,7 +69,8 @@ class Prompts:
 
     def _create_discussion_detection_prompt(self) -> str:
         """Constructs the prompt for the initial discussion detection step."""
-        return  """You are a neutral annotation assistant whose job is to judge short conversations between a user and an assistant. 
+        return  """
+        You are a neutral annotation assistant whose job is to judge short conversations between a user and an assistant. 
         For every input conversation you MUST return exactly one JSON object (and only the JSON, no surrounding text) that strictly follows the schema given in the user prompt. 
         Use the Decision Rules provided in the user prompt to decide labels. If you are uncertain about a label, choose "uncertain" and set the corresponding confidence to a low value (0 or 1) and populate example/evidence arrays where requested. 
         Adhere to the controlled vocabularies in the schema. Do not invent extra fields.

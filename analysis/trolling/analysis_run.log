@@ -1,3 +1,0 @@
-2025-12-31 02:40:18,450 - __main__ - INFO - TROLL ANALYSIS PIPELINE - STARTING
-usage: main.py [-h] [--chunk-id CHUNK_ID]
-main.py: error: argument --chunk-id: invalid int value: '1source'

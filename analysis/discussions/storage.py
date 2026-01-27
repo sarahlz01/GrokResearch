@@ -331,7 +331,7 @@ class EncodingHandler:
                     "user_response": {
                         "type": parsed_response.get("user_response", {}).get("type", "other"),
                         "user_response_confidence": parsed_response.get("user_response", {}).get("user_response_confidence", 1),
-                    },
+                    }
                 }
                 
                 all_analysis.append(result)
