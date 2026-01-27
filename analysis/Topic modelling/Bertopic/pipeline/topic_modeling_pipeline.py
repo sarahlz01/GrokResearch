@@ -1,23 +1,3 @@
-"""
-Topic Modeling Pipeline using BERTopic
-
-This script performs topic modeling over multi-tweet conversations using BERTopic.
-Each conversation is treated as a single document by concatenating all tweets
-within that conversation.
-
-High-level steps:
-1. Streams and load conversation data from a large JSON file
-2. Aggregates tweets per conversation
-3. Applies light text normalization suitable for X
-4. Trains a multilingual BERTopic model
-5. Persists the trained model and multiple CSV artifacts for analysis
-
-The outputs are designed to support both quantitative inspection
-(topic frequencies, assignments) and qualitative review
-(keyword-based labels and representative examples).
-
-"""
-
 import ijson
 import pandas as pd
 import stopwordsiso as stopwords

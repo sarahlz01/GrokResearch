@@ -1,24 +1,3 @@
-
-"""
-Qwen-Based Topic Modeling and Clustering Pipeline
-
-This script performs end-to-end topic discovery using Qwen sentence
-embeddings and unsupervised clustering
-
-Main steps:
-- Creates sentence embeddings using a Qwen embedding model with
-   hard token limits for stability and reproducibility
-- Reduces embedding dimensionality using UMAP
--Clusters conversations using HDBSCAN
-- Reorders topic labels by cluster size (largest topic assigned ID 0),
-- Extracts representative keywords per topic using TF-IDF with
-   multilingual and domain-specific stopwords( same as bertopic pipeline)
--Saves embeddings, trained clustering models, conversation-to-topic
-   mappings, and ordered topic annotations for downstream analysis.
-
-
-"""
-
 import os
 import re
 from collections import defaultdict

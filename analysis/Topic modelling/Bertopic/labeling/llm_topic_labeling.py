@@ -1,21 +1,3 @@
-"""
-LLM-Based Topic Labeling Script
-
-This script assigns human-readable topic names to BERTopic-generated clusters
-using a large language model (Gemini). It is intended as a post-processing
-step after unsupervised topic modeling.
-
-Each topic is labeled using:
-- Automatically extracted keywords
-- A representative conversation example
-- A lightweight existing keyword-based label
-
-
-The script is resume-safe and idempotent:
-- It can be re-run without overwriting existing labels
-- Progress is checkpointed periodically to avoid data loss
-"""
-
 import time
 import pandas as pd
 import google.generativeai as genai
