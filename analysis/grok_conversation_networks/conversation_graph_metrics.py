@@ -109,3 +109,13 @@ def build_graphs_for_conversation(conv: Dict[str, Any]) -> Tuple[nx.Graph, nx.Di
 
     meta["grok_nodes"] = list(meta["grok_nodes"])
     return G_u, G_d, meta
+
+ # metrics 
+# Average degree centrality (undirected): the mean node degree normalized by the maximum
+# possible degree (n-1). Equivalent to (sum(deg(v))/n) / (n-1) Returns 0.0 if n <= 1
+def avg_degree_centrality(G_u: nx.Graph) -> float:
+    n = G_u.number_of_nodes()
+    if n <= 1:
+        return 0.0
+    avg_deg = sum(dict(G_u.degree()).values()) / n
+    return avg_deg / (n - 1)
