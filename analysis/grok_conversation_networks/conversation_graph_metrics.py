@@ -143,3 +143,34 @@ def reciprocity(G_d: nx.DiGraph) -> float:
         if G_d.has_edge(v, u):
             mutual += 1
     return mutual / m
+
+
+# Consistent reciprocity (directed, weighted): consider each unordered pair {u,v} and count it
+# as "bidirectional" if both u->v and v->u exist. Among bidirectional pairs, count it as
+# "consistent" if both edge weights are >= min_weight. The metric is:
+#  consistent_pairs / bidirectional_pairs
+# where bidirectional_pairs counts unordered pairs with both directions present at all.
+# Returns 0.0 if there are no bidirectional pairs
+def consistent_reciprocity(G_d: nx.DiGraph, min_weight: int = 2) -> float:
+    mutual_pairs = 0
+    bidir_pairs = 0
+    seen = set()
+
+    for u, v in G_d.edges():
+        if u == v:
+            continue
+        key = tuple(sorted((u, v)))
+        if key in seen:
+            continue
+        seen.add(key)
+
+        if G_d.has_edge(u, v) and G_d.has_edge(v, u):
+            bidir_pairs += 1
+            w_uv = G_d[u][v].get("weight", 1)
+            w_vu = G_d[v][u].get("weight", 1)
+            if w_uv >= min_weight and w_vu >= min_weight:
+                mutual_pairs += 1
+
+    if bidir_pairs == 0:
+        return 0.0
+    return mutual_pairs / bidir_pair
