@@ -121,10 +121,25 @@ def avg_degree_centrality(G_u: nx.Graph) -> float:
     return avg_deg / (n - 1)
 
 # Average out-degree centrality (directed): the mean out-degree normalized by the maximum
-# possible out-degree (n-1). Equivalent to (sum(out_deg(v))/n) / (n-1). Returns 0.0 if n <= 1.
+# possible out-degree (n-1)
+ Equivalent to (sum(out_deg(v))/n) / (n-1). Returns 0.0 if n <= 1
 def avg_out_degree(G_d: nx.DiGraph) -> float:
     n = G_d.number_of_nodes()
     if n <= 1:
         return 0.0
     avg_out = sum(dict(G_d.out_degree()).values()) / n
     return avg_out / (n - 1)
+
+# Unweighted reciprocity (directed): fraction of directed edges (u->v) that have the reverse
+# edge (v->u) present. Counts edges (not unordered pairs), so mutual dyads contribute twice
+# (once for each direction) Returns 0.0 if the graph has no edges
+
+def reciprocity(G_d: nx.DiGraph) -> float:
+    m = G_d.number_of_edges()
+    if m == 0:
+        return 0.0
+    mutual = 0
+    for u, v in G_d.edges():
+        if G_d.has_edge(v, u):
+            mutual += 1
+    return mutual / m
