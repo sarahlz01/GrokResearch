@@ -185,19 +185,9 @@ def transitivity(G_u: nx.Graph) -> float:
     if G_u.number_of_nodes() < 3:
         return 0.0
     return nx.transitivity(G_u)
+    
+
 """
-Grok back-and-forth stats (per conversation, directed weighted):
-For a set of grok_nodes, aggregate user<->grok interaction weights across all grok nodes:
-
- to_grok(u): sum of weights on edges u -> grok
- from_grok(u): sum of weights on edges grok -> u
- users_interacting_with_grok: number of non-grok nodes with to_grok>0 or from_grok>0
- mutual_users_with_grok: count of users with to_grok>0 AND from_grok>0
- mutual_rate_with_grok: mutual_users_with_grok / users_interacting_with_grok
- consistent_mutual_users_with_grok: count of users with to_grok>=min_weight AND from_grok>=min_weight
- consistent_mutual_rate_with_grok: consistent_mutual_users_with_grok / users_interacting_with_grok
- If no grok_nodes are provided, returns has_grok=False and zeros
-
 Grok-focused back-and-forth per conversation
 For conversations that include Grok, it measures how much users go back-and-forth with Grok.
 all grok nodes are aggregated  in this conversation (usually 1)
@@ -248,3 +238,72 @@ def grok_back_and_forth_stats(G_d: nx.DiGraph, grok_nodes: Iterable[str], min_we
         "consistent_mutual_users_with_grok": consistent,
         "consistent_mutual_rate_with_grok": (consistent / total) if total else 0.0,
     }
+
+def main():
+    rows = []
+    processed = 0
+
+    for conv in stream_conversations(DATA_PATH):
+        G_u, G_d, meta = build_graphs_for_conversation(conv)
+
+        #  5 metrics per conversation
+        m = {
+            "conversationId": meta["conversationId"],
+            "n_nodes": G_u.number_of_nodes(),
+            "n_edges_undirected": G_u.number_of_edges(),
+            "n_edges_directed": G_d.number_of_edges(),
+            "avg_degree_centrality": avg_degree_centrality(G_u),
+            "avg_out_degree": avg_out_degree(G_d),
+            "reciprocity": reciprocity(G_d),
+            "consistent_reciprocity": consistent_reciprocity(
+                G_d,
+                min_weight=MIN_WEIGHT_FOR_CONSISTENT
+            ),
+            "transitivity": transitivity(G_u),
+            "threads": meta["threads"],
+            "tweets": meta["tweets"],
+            "reply_steps": meta["reply_steps"],
+            "missing_authorId": meta["missing_authorId"],
+        }
+
+        # Grok-specific back and forth
+        grok_stats = grok_back_and_forth_stats(
+            G_d,
+            meta.get("grok_nodes", []),
+            min_weight=MIN_WEIGHT_FOR_CONSISTENT
+        )
+        m.update(grok_stats)
+
+        rows.append(m)
+        processed += 1
+
+        if processed % 500 == 0:
+            print(f"Processed {processed} conversations...")
+
+    df = pd.DataFrame(rows)
+    out_csv = os.path.join(OUTPUT_DIR, "conversation_metrics.csv")
+    df.to_csv(out_csv, index=False, encoding="utf-8-sig")
+    print(f"Saved per-conversation metrics to {out_csv}")
+
+    # Dataset-level summary 
+    summary = df[
+        [
+            "avg_degree_centrality",
+            "avg_out_degree",
+            "reciprocity",
+            "consistent_reciprocity",
+            "transitivity",
+            "mutual_rate_with_grok",
+            "consistent_mutual_rate_with_grok",
+        ]
+    ].describe().to_dict()
+
+    out_json = os.path.join(OUTPUT_DIR, "dataset_summary.json")
+    with open(out_json, "w", encoding="utf-8") as f:
+        json.dump(summary, f, ensure_ascii=False, indent=2)
+
+    print(f"Saved dataset summary stats to {out_json}")
+
+
+if __name__ == "__main__":
+    main()
