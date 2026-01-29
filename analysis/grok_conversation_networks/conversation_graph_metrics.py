@@ -174,3 +174,14 @@ def consistent_reciprocity(G_d: nx.DiGraph, min_weight: int = 2) -> float:
     if bidir_pairs == 0:
         return 0.0
     return mutual_pairs / bidir_pair
+
+"""
+Transitivity (undirected): global clustering coefficient defined as
+3 * (# of triangles) / (# of connected triples)
+(equivalently, fraction of connected triples that are closed) Uses networkx.transitivity.
+Returns 0.0 if the graph has fewer than 3 nodes
+"""
+def transitivity(G_u: nx.Graph) -> float:
+    if G_u.number_of_nodes() < 3:
+        return 0.0
+    return nx.transitivity(G_u)
