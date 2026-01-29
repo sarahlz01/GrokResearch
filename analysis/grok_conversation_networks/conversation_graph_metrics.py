@@ -185,3 +185,66 @@ def transitivity(G_u: nx.Graph) -> float:
     if G_u.number_of_nodes() < 3:
         return 0.0
     return nx.transitivity(G_u)
+"""
+Grok back-and-forth stats (per conversation, directed weighted):
+For a set of grok_nodes, aggregate user<->grok interaction weights across all grok nodes:
+
+ to_grok(u): sum of weights on edges u -> grok
+ from_grok(u): sum of weights on edges grok -> u
+ users_interacting_with_grok: number of non-grok nodes with to_grok>0 or from_grok>0
+ mutual_users_with_grok: count of users with to_grok>0 AND from_grok>0
+ mutual_rate_with_grok: mutual_users_with_grok / users_interacting_with_grok
+ consistent_mutual_users_with_grok: count of users with to_grok>=min_weight AND from_grok>=min_weight
+ consistent_mutual_rate_with_grok: consistent_mutual_users_with_grok / users_interacting_with_grok
+ If no grok_nodes are provided, returns has_grok=False and zeros
+
+Grok-focused back-and-forth per conversation
+For conversations that include Grok, it measures how much users go back-and-forth with Grok.
+all grok nodes are aggregated  in this conversation (usually 1)
+"""
+def grok_back_and_forth_stats(G_d: nx.DiGraph, grok_nodes: Iterable[str], min_weight: int = 2) -> Dict[str, Any]:
+    grok_nodes = list(grok_nodes)
+    if not grok_nodes:
+        return {
+            "has_grok": False,
+            "users_interacting_with_grok": 0,
+            "mutual_users_with_grok": 0,
+            "mutual_rate_with_grok": 0.0,
+            "consistent_mutual_users_with_grok": 0,
+            "consistent_mutual_rate_with_grok": 0.0,
+        }
+
+    counterparts: Dict[str, Dict[str, int]] = {}
+
+    for g in grok_nodes:
+        if g not in G_d:
+            continue
+
+        # users to grok
+        for u in G_d.predecessors(g):
+            w = G_d[u][g].get("weight", 1)
+            counterparts.setdefault(u, {"to_grok": 0, "from_grok": 0})
+            counterparts[u]["to_grok"] += w
+
+        # grok to users
+        for v in G_d.successors(g):
+            w = G_d[g][v].get("weight", 1)
+            counterparts.setdefault(v, {"to_grok": 0, "from_grok": 0})
+            counterparts[v]["from_grok"] += w
+
+    # Removing grok nodes from counterparts if they got included
+    for g in grok_nodes:
+        counterparts.pop(g, None)
+
+    total = len(counterparts)
+    mutual = sum(1 for u, d in counterparts.items() if d["to_grok"] > 0 and d["from_grok"] > 0)
+    consistent = sum(1 for u, d in counterparts.items() if d["to_grok"] >= min_weight and d["from_grok"] >= min_weight)
+
+    return {
+        "has_grok": True,
+        "users_interacting_with_grok": total,
+        "mutual_users_with_grok": mutual,
+        "mutual_rate_with_grok": (mutual / total) if total else 0.0,
+        "consistent_mutual_users_with_grok": consistent,
+        "consistent_mutual_rate_with_grok": (consistent / total) if total else 0.0,
+    }
