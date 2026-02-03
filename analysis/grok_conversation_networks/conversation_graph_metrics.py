@@ -239,6 +239,23 @@ def grok_back_and_forth_stats(G_d: nx.DiGraph, grok_nodes: Iterable[str], min_we
         "consistent_mutual_rate_with_grok": (consistent / total) if total else 0.0,
     }
 
+def avg_degree_centrality_grok(G_u: nx.Graph, grok_nodes: Iterable[str]) -> float:
+    """
+    Average degree centrality for Grok nodes only
+
+    For each Grok node g:
+        degree_centrality(g) = deg(g) / (n - 1)
+    Then average across Grok nodes present in the graph
+
+    Returns 0.0 if no grok nodes or n <= 1
+    """
+    grok_nodes = [g for g in grok_nodes if g in G_u]
+    n = G_u.number_of_nodes()
+    if n <= 1 or not grok_nodes:
+        return 0.0
+
+    return sum(G_u.degree(g) / (n - 1) for g in grok_nodes) / len(grok_nodes)
+
 def main():
     rows = []
     processed = 0
@@ -253,6 +270,7 @@ def main():
             "n_edges_undirected": G_u.number_of_edges(),
             "n_edges_directed": G_d.number_of_edges(),
             "avg_degree_centrality": avg_degree_centrality(G_u),
+            "avg_degree_centrality_grok": avg_degree_centrality_grok(G_u, meta.get("grok_nodes", [])),
             "avg_out_degree": avg_out_degree(G_d),
             "reciprocity": reciprocity(G_d),
             "consistent_reciprocity": consistent_reciprocity(
