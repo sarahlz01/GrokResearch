@@ -38,10 +38,28 @@ from typing import Dict, Any, List, Optional, Set
 
 import ijson
 
+from decimal import Decimal
+
 from setuplog import setup_logging
 from network.http import http_get
 from cleaning.clean_objects_while_scraping import extract_items
 from cleaning.clean_threads import clean_text_with_map, GROK_USER_ID
+
+
+# ------------------------------------------------------------
+# JSON serialization helpers
+# ------------------------------------------------------------
+
+def json_default(o: Any):
+    """
+    Allow json.dump to serialize Decimal values (e.g., from network_metrics merges).
+    """
+    if isinstance(o, Decimal):
+        # Preserve integers as ints if possible; otherwise float.
+        if o == o.to_integral_value():
+            return int(o)
+        return float(o)
+    raise TypeError(f"Object of type {o.__class__.__name__} is not JSON serializable")
 
 
 # ------------------------------------------------------------
@@ -379,7 +397,7 @@ def write_hydrated(
 
                 if not first_out:
                     fout.write(",\n")
-                json.dump(hydrated_conv, fout, ensure_ascii=False, indent=2)
+                json.dump(hydrated_conv, fout, ensure_ascii=False, indent=2, default=json_default)
                 first_out = False
                 kept += 1
 
