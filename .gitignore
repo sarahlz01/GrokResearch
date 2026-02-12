@@ -24,3 +24,5 @@ batch_files/
 full_rehydrated.json
 o.json
 run_annotate.py
+check_missing_toxicity_mappings.py
+fully_hydrate.py
