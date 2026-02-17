@@ -36,8 +36,8 @@ task_categories:
 <div align="center">
 
 [![arXiv](https://img.shields.io/badge/arXiv-2503.18674-b31b1b.svg?style=for-the-badge&logoColor=white)](https://arxiv.org/abs/2503.18674)
-[![Project Page](https://img.shields.io/badge/Project-Page-orange?style=for-the-badge&logo=academia&logoColor=white)]([https://www.pinlab.org/hmu](https://mamiglia.github.io/grokset/))
-[![Github](https://img.shields.io/badge/Github-black?style=for-the-badge&logo=github&logoColor=white)]([https://www.pinlab.org/hmu](https://mamiglia.github.io/grokset/))
+[![Project Page](https://img.shields.io/badge/Project-Page-orange?style=for-the-badge&logo=academia&logoColor=white)](https://mamiglia.github.io/grokset/)
+[![Github](https://img.shields.io/badge/Github-black?style=for-the-badge&logo=github&logoColor=white)](https://github.com/sarahlz01/GrokResearch/)
 
 
 **[Matteo Migliarini](https://mamiglia.github.io/)\* · [Berat Ercevik]()\* · [Oluwagbemike Olowe]() · [Saira Fatima]() · [Sarah Zhao]() · [Minh Anh Le]() · [Vasu Sharma]() · [Ashwinee Panda]()**
