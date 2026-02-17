@@ -170,7 +170,6 @@ The JSON structure organizes tweets chronologically within their parent thread.
           "text": "string (cleaned text)",
           "original_text": "string (rehydrated content)",
 
-
           "likeCount": "int",
           "retweetCount": "int",
           "replyCount": "int",
