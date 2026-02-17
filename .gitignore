@@ -26,3 +26,5 @@ o.json
 run_annotate.py
 check_missing_toxicity_mappings.py
 fully_hydrate.py
+dehydrated_10k.json
+full_rehydrated_10k.json
