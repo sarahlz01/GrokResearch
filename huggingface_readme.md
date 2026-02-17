@@ -147,12 +147,13 @@ The JSON structure organizes tweets chronologically within their parent thread.
 
   "threads": [
     {
-      "threadId": "string",
       "conversationId": "string",
+      "threadId": "string",
 
       "hasMissingTweets": "boolean",
       "truncatedThread": "boolean",
       "validTweetCount": "int",
+      "deletedTweetCount": "int",
 
       "tweets": [
         {
