@@ -51,7 +51,7 @@ task_categories:
 
 The dataset spans from **March to October 2025**, covering over **1 million tweets** across **182,000+ conversation threads**. It is designed to study the behavior of LLMs in adversarial, socially embedded, and "public square" environments.
 
-This dataset is released in a **dehydrated format** (Tweet IDs + annotations + structural metadata) to comply with platform ToS. A specialized [rehydration toolkit](https://github.com/sarahlz01/GrokResearch) is provided to reconstruct the text and metadata.
+This dataset is released in a **dehydrated format** (Tweet IDs + annotations + structural metadata) to comply with platform ToS. A specialized rehydration toolkit, found in [https://github.com/sarahlz01/GrokResearch](https://github.com/sarahlz01/GrokResearch), is provided to reconstruct the dataset's text and metadata.
 
 **Key Features:**
 * **Multi-Party Dynamics:** Captures complex interaction graphs, not just linear queries.
@@ -73,85 +73,128 @@ The JSON structure organizes tweets chronologically within their parent thread.
 ```json
 {
   "conversationId": "string (Unique root ID)",
+
   "annotations": {
-    "topic": "string (e.g., '413: Parachutes in Balloon Accidents')",
-    
+    "topic": "string",
+
+    "trolling": {
+      "is_trolling": "string ('yes'|'no')",
+
+      "trolling_confidence": "int (1-5)",
+      "trolling_intensity": "int (1-5)",
+
+      "topic": "string (fine-grained trolling topic)",
+      "trolling_topic": "string",
+
+      "troll_recognition_type": "string",
+      "troll_recognition_confidence": "int (1-5)",
+      "troll_recognition_explanation": "string",
+
+      "trolling_category_type": "string",
+      "trolling_category_confidence": "int (1-5)",
+      "trolling_category_explanation": "string",
+
+      "response_strategy_type": "string",
+      "response_strategy_confidence": "int (1-5)",
+      "response_strategy_explanation": "string",
+
+      "assistant_tone_type": "string",
+      "assistant_tone_confidence": "int (1-5)",
+      "assistant_tone_explanation": "string",
+
+      "endorsement_type": "string",
+      "endorsement_confidence": "int (1-5)",
+      "endorsement_explanation": "string",
+
+      "amplification_type": "string ('yes'|'no')",
+      "amplification_confidence": "int (1-5)",
+      "amplification_explanation": "string"
+    } | null,
+
+    "discussion": {
+      "is_discussion": "string ('yes'|'no')",
+
+      "discussion_confidence": "int (1-5)",
+      "discussion_intensity": "int (1-5)",
+
+      "discussion_type": "string",
+
+      "topic": "string",
+
+      "bias_language": "string ('yes'|'no')",
+      "bias_examples": "string",
+
+      "bias_confidence": "int",
+      "assistant_bias": "string",
+      "bias_intensity": "int",
+
+      "assistant_stance": "string",
+      "stance_confidence": "int (1-5)",
+      "assistant_stance_bias": "string",
+
+      "user_response_type": "string",
+      "user_response_confidence": "int (1-5)"
+    } | null,
+
     "network_metrics": {
       "avg_degree_centrality": "float",
       "avg_out_degree": "float",
       "reciprocity": "float",
       "transitivity": "float",
-      "grok_degree_centrality": "float (Centrality of the LLM in the graph)"
-    },
-
-    "trolling": {
-      "is_trolling": "string ('yes'|'no')",
-      "trolling_confidence": "int (1-5)",
-      "trolling_intensity": "int (1-5)",
-      "trolling_category_type": "string (e.g., 'baiting', 'misinformation')",
-      "troll_recognition_type": "string (e.g., 'implicitly_recognized')",
-      "response_strategy_type": "string (e.g., 'serious_answer', 'corrective')",
-      "assistant_tone_type": "string (e.g., 'formal', 'neutral')",
-      "endorsement_type": "string (e.g., 'challenged', 'neutral')",
-      "amplification_type": "string (e.g., 'no')"
-    } | null,
-
-    "discussion": {
-      "is_discussion": "string ('yes'|'no')",
-      "discussion_type": "string (e.g., 'political', 'scientific')",
-      "bias_language": "string ('yes'|'no')",
-      "assistant_stance": "string (e.g., 'neutral')",
-      "user_response_type": "string (e.g., 'engaged')"
-    } | null
+      "grok_degree_centrality": "float"
+    }
   },
 
   "threads": [
     {
       "threadId": "string",
       "conversationId": "string",
+
       "hasMissingTweets": "boolean",
       "truncatedThread": "boolean",
       "validTweetCount": "int",
+
       "tweets": [
         {
+          "toxicity": {
+            "toxicity_score": "float",
+            "category": "string ('toxicity' | 'obscene' | 'sexual_explicit' | 'insult')"
+          } | null,
+
           "id": "string",
           "inReplyToId": "string",
-          "createdAt": "timestamp (e.g., 'Fri May 30 05:55:26 +0000 2025')",
-          "lang": "string (e.g., 'en', 'pt', 'tr')",
-          "text": "string (cleaned text content used for analysis)",
-          "original_text": "string (Content rehydrated via ID)",
-          
+          "createdAt": "timestamp",
+
+          "lang": "string",
+
+          "text": "string (cleaned text)",
+          "original_text": "string (rehydrated content)",
+
+
+          "likeCount": "int",
+          "retweetCount": "int",
+          "replyCount": "int",
+          "quoteCount": "int",
+          "viewCount": "int",
+          "bookmarkCount": "int"
+
           "author": {
             "isVerified": "boolean",
             "followers": "int",
             "following": "int",
-            "isAssistant": "boolean (True if Author is Grok)"
-          },
-
-          "metrics": {
-            "likeCount": "int",
-            "retweetCount": "int",
-            "replyCount": "int",
-            "quoteCount": "int",
-            "viewCount": "int",
-            "bookmarkCount": "int"
+            "isAssistant": "boolean"
           },
 
           "entities": {
             "hashtags": "array",
-            "urls": "array (Includes expanded_url)"
+            "urls": "array"
           },
-
-          "toxicity": {
-            "severe_toxicity": "float",
-            "obscene": "float",
-            "identity_attack": "float"
-          } | null
         }
       ]
     }
   ]
 }
+
 ```
 
 _Note: Some fields (like original_text) are only available after running the rehydration script._
