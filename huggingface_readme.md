@@ -26,8 +26,9 @@ tags:
 - network-analysis
 task_categories:
 - text-classification
-- conversation-analysis
-- hate-speech-detection
+- feature-extraction
+- summarization
+- sentence-similarity
 ---
 
 # @GrokSet: Multi-Party Human-LLM Interactions in Social Media
@@ -66,6 +67,7 @@ The dataset is structured hierarchically around **Conversation Threads**.
 * **Threads:** 182,707
 * **Total Tweets:** 1,098,394
 * **Avg. Turns per Thread:** ~6.01
+* **Period:** March 2025 – October 2025.
 
 ### Schema Overview
 The JSON structure organizes tweets chronologically within their parent thread.
@@ -204,12 +206,6 @@ _Note: Some fields (like original_text) are only available after running the reh
 ### Curation Rationale
 
 As LLMs move from private chatbots to public social agents, we lack data on how they perform in the "wild." @GrokSet was created to fill this gap, offering the first look at an LLM responding to breaking news, political polarization, and multi-user trolling in real-time.
-
-### Data Collection
-
-- **Period:** March 2025 – October 2025.
-- **Method:** Conversations were collected using `twitterapi.io`, seeded by replies from the official Grok account. Threads were reconstructed upwards to capture the full context (including the human prompt).
-- **Sampling:** Data was collected in 6-hour "block windows" to ensure temporal diversity.
 
 ### Annotation Process
 
