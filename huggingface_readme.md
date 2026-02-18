@@ -199,7 +199,7 @@ The JSON structure organizes tweets chronologically within their parent thread.
 
 ```
 
-_Note: Some fields (like original_text) are only available after running the rehydration script._
+_Note: Certain fields (e.g., original_text) are only populated after executing the rehydration pipeline. Additionally, the schema description provided here is not exhaustive; some auxiliary or implementation-specific fields may be omitted for brevity._
 
 ## Dataset Creation
 
