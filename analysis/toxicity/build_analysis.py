@@ -10,86 +10,94 @@ from langdetect import DetectorFactory, detect
 logger = logging.getLogger(__name__)
 
 
-DetectorFactory.seed = 0 # remove this
+DetectorFactory.seed = 0
 
 
-class ToxicityAnalzyer:
+class ToxicityAnalyzer:
     def __init__(self, config: AnalysisConfig):
         self.config = config
 
         self.english_model = Detoxify(self.config.english_model_name)
         self.multilingual_model = Detoxify(self.config.multilingual_model_name)
-        self.semanphore = asyncio.Semaphore(self.config.max_prediction_concurrency)
+        self.semaphore = asyncio.Semaphore(self.config.max_prediction_concurrency)
         logger.info(f"Initialized ToxicityAnalyzer with models: {self.config.english_model_name} and {self.config.multilingual_model_name}. Concurrency Limit: {self.config.max_prediction_concurrency}")
 
-
     async def analyze_single_reply(self, reply_item: dict) -> Dict:
-        text = reply_item.get('user_message', '')
+        user_prompt = reply_item.get('user_prompt', '')
+        grok_reply = reply_item.get('grok_reply', '')
         conversation_id = reply_item.get('conversationId')
         thread_id = reply_item.get('threadId', 'N/A')
         role = reply_item.get('role', '')
 
-        if not text:
+        if not user_prompt:
             return {}
 
         specific_label_thresholds = {
+            # 'toxicity': 0.9,
             'threat': 0.9, 
             'severe_toxicity': 0.9, 
-            'identify_attack': 0.9,
+            'identity_attack': 0.9,
             'insult': 0.9, 
             'sexual_explicit': 0.66, 
             'obscene': 0.6,
         }
         general_toxicity_threshold = 0.90
 
-        final_category = ""
-        final_score = 0.0
-
         try:
-            language = await asyncio.to_thread(detect, text)
+            language = await asyncio.to_thread(detect, user_prompt)
         except Exception:
             language = "unknown"
 
-        if language:
-            async with self.semanphore:
-                logger.debug(f"Starting prediction. Active predictions: {self.config.max_prediction_concurrency - self.semanphore._value} / {self.config.max_prediction_concurrency}")
+        if not language:
+            return {"conversationId": conversation_id, "threadId": thread_id, "user_prompt": user_prompt, "grok_reply": grok_reply, "user_prompt_toxicity_score": 0.0, "grok_reply_toxicity_score": 0.0, "user_prompt_category": "unknown_language", "grok_reply_category": "unknown_language", "role": role}
 
-                try:
-                    if language == "en":
-                        prediction = await asyncio.to_thread(self.english_model.predict, text)
-                    else:
-                        prediction = await asyncio.to_thread(self.multilingual_model.predict, text)
-                except Exception as e:
-                    logger.error(f"Prediction failed for {conversation_id}/{thread_id}: {e}")
-                    return {"conversationId": conversation_id, "threadId": thread_id, "grok_reply": text, "category": "prediction_error", "toxicity_score": 0.0, "role": role}
+        async with self.semaphore:
+            logger.debug(f"Starting prediction. Active predictions: {self.config.max_prediction_concurrency - self.semaphore._value} / {self.config.max_prediction_concurrency}")
 
-        toxicity_scores = {k: round(v, 4) for k, v in prediction.items()}
-        general_toxicity_score = toxicity_scores.get('toxicity', 0.0)
+            try:
+                if language == "en":
+                    user_prompt_prediction = await asyncio.to_thread(self.english_model.predict, user_prompt)
+                    grok_reply_prediction = await asyncio.to_thread(self.english_model.predict, grok_reply)
+                else:
+                    user_prompt_prediction = await asyncio.to_thread(self.multilingual_model.predict, user_prompt)
+                    grok_reply_prediction = await asyncio.to_thread(self.multilingual_model.predict, grok_reply)
+            except Exception as e:
+                logger.error(f"Prediction failed for {conversation_id}/{thread_id}: {e}")
+                return {"conversationId": conversation_id, "threadId": thread_id, "user_prompt": user_prompt, "grok_reply": grok_reply, "user_prompt_toxicity_score": 0.0, "grok_reply_toxicity_score": 0.0, "user_prompt_category": "prediction_error", "grok_reply_category": "prediction_error", "role": role}
 
-        if general_toxicity_score >= general_toxicity_threshold:
-            final_category = 'toxicity'
-            final_score = float(general_toxicity_score)
+        user_prompt_toxicity_scores = {label: round(score, 4) for label, score in user_prompt_prediction.items()}
+        grok_reply_toxicity_scores = {label: round(score, 4) for label, score in grok_reply_prediction.items()}
 
-            for label, threshold in specific_label_thresholds.items():
-                current_label_score = float(toxicity_scores.get(label, 0.0))
+        # user prompt - pick the highest scoring label across all specific labels
+        user_prompt_label_scores = {
+            label: float(user_prompt_toxicity_scores.get(label, 0.0))
+            for label in specific_label_thresholds
+        }
+        logger.debug(f"User prompt label scores for {conversation_id}/{thread_id}: {user_prompt_label_scores}")
 
-                if current_label_score >= threshold:
-                    final_score = current_label_score
-                    final_category = label
-                    break
-        else:
-            final_category = "non_toxic"
-            final_score = 0.0
+        final_user_prompt_category = max(user_prompt_label_scores, key=user_prompt_label_scores.get)
+        final_user_prompt_score = user_prompt_label_scores[final_user_prompt_category]
+
+        # grok reply - pick the highest scoring label across all specific labels
+        grok_reply_label_scores = {
+            label: float(grok_reply_toxicity_scores.get(label, 0.0))
+            for label in specific_label_thresholds
+        }
+        logger.debug(f"Grok reply label scores for {conversation_id}/{thread_id}: {grok_reply_label_scores}")
+        
+        final_grok_reply_category = max(grok_reply_label_scores, key=grok_reply_label_scores.get)
+        final_grok_reply_score = grok_reply_label_scores[final_grok_reply_category]
 
         return {
             'conversationId': conversation_id,
             'threadId': thread_id,
-            # 'grok_reply': text,
-            'user_message': text,
+            'user_prompt': user_prompt,
+            'grok_reply': grok_reply,
             'language': language,
-            'toxicity_score': final_score,
-            'category': final_category,
-            'role': role
+            'user_prompt_toxicity_score': final_user_prompt_score,
+            "grok_reply_toxicity_score": final_grok_reply_score,
+            'user_prompt_category': final_user_prompt_category,
+            "grok_reply_category": final_grok_reply_category
         }
 
     def _get_individual_replies_for_task(self, conversation: Dict) -> List[Dict]:
@@ -125,32 +133,27 @@ class ToxicityAnalzyer:
                 
                 for i, tweet in enumerate(tweets):
                     author = tweet.get('authorName', '')
-                    text = tweet.get('text', '')
+
+                    if not author:
+                        continue
                     
                     # When we find a Grok reply
                     if author in ["<ASSISTANT>", "Grok", "ASSISTANT"]:
+                        # Get grok response
+                        grok_reply = tweet.get('text', '')
                         # Get the immediate previous user message
-                        user_msg = None
+                        user_prompt = None
                         if i > 0:
                             prev_tweet = tweets[i-1]
                             prev_author = prev_tweet.get('authorName', '')
                             if prev_author not in ["<ASSISTANT>", "Grok", "ASSISTANT"]:
-                                user_msg = prev_tweet.get('text', '')
+                                user_prompt = prev_tweet.get('text', '')
                         
                         user_grok_pairs.append({
-                            'role': 'user',
-                            'user_message': user_msg,
-                            'grok_reply': text,
+                            'user_prompt': user_prompt,
+                            'grok_reply': grok_reply,
                             'threadId': threads.get('threadId', 'N/A'),
                             'conversationId': conversation_id
                         })
         
         return user_grok_pairs
-
-                     
-
-
-
-
-
-

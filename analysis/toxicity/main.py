@@ -5,7 +5,7 @@ import sys
 import time
 from pathlib import Path
 
-from build_analysis import ToxicityAnalzyer
+from build_analysis import ToxicityAnalyzer
 from config import load_config
 from dotenv import load_dotenv
 from orchestrator import Orchestrator
@@ -65,7 +65,7 @@ def main():
         chunk_id = args.chunk_id
 
         storage = EncodingHandler(config)
-        toxicity_analyzer = ToxicityAnalzyer(config)
+        toxicity_analyzer = ToxicityAnalyzer(config)
         orchestrator = Orchestrator(config, toxicity_analyzer, storage)
 
         logger.info("Starting analysis...")

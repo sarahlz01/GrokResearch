@@ -4,7 +4,7 @@ import time
 from collections import Counter
 
 import ijson
-from build_analysis import ToxicityAnalzyer
+from build_analysis import ToxicityAnalyzer
 from config import AnalysisConfig
 from storage import EncodingHandler
 from tqdm import tqdm
@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 class Orchestrator:
-    def __init__(self, config: AnalysisConfig, toxicity_analyzer: ToxicityAnalzyer, storage: EncodingHandler):
+    def __init__(self, config: AnalysisConfig, toxicity_analyzer: ToxicityAnalyzer, storage: EncodingHandler):
         self.config = config
         self.file_path = self.config.file_path
         self.output_path = self.config.output_path
@@ -41,11 +41,13 @@ class Orchestrator:
                         continue
 
                     # replies = self.toxicity_analyzer._get_individual_replies_for_task(conversation)
+                    
+                    # get toxic replies for all tweets (users and grok)
                     replies = self.toxicity_analyzer._get_immediate_user_message(conversation)
 
                     if replies:
                         for reply_data in replies:
-                            task = self.toxicity_analyzer.analyze_single_reply(reply_data)
+                            task = asyncio.create_task(self.toxicity_analyzer.analyze_single_reply(reply_data))
                             all_reply_tasks.append(task)
                         conversations_prepared += 1
 

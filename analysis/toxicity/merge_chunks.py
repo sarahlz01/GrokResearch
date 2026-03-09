@@ -20,6 +20,7 @@ logging.basicConfig(
 FIELDNAMES = [
     'conversationId',
     'threadId', 
+    'user_message',
     'grok_reply',
     'language',
     'toxicity_score',
@@ -78,6 +79,7 @@ def extract_replies(replies: List[Dict]) -> List[Dict]:
         {
             'conversationId': reply.get('conversationId', ''),
             'threadId': reply.get('threadId', ''),
+            'user_message': reply.get('user_message', ''),
             'grok_reply': reply.get('grok_reply', ''),
             'language': reply.get('language', ''),
             'toxicity_score': reply.get('toxicity_score', ''),
