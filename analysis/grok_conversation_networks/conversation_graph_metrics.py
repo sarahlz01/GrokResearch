@@ -122,7 +122,7 @@ def avg_degree_centrality(G_u: nx.Graph) -> float:
 
 # Average out-degree centrality (directed): the mean out-degree normalized by the maximum
 # possible out-degree (n-1)
- Equivalent to (sum(out_deg(v))/n) / (n-1). Returns 0.0 if n <= 1
+#  Equivalent to (sum(out_deg(v))/n) / (n-1). Returns 0.0 if n <= 1
 def avg_out_degree(G_d: nx.DiGraph) -> float:
     n = G_d.number_of_nodes()
     if n <= 1:

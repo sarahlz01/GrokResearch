@@ -57,7 +57,8 @@ class Orchestrator:
             for future in tqdm(asyncio.as_completed(all_reply_tasks), total=len(all_reply_tasks), desc="Executing Concurrent Predictions"):
                 result = await future
 
-                if result and result.get('category') != 'prediction_error':
+                # if result and result.get('category') != 'prediction_error':
+                if result and result.get('user_prompt_category') != 'prediction_error' and result.get('grok_reply_category') != 'prediction_error':
                     all_results.append(result)
 
             end_time = time.time()
@@ -89,21 +90,36 @@ class Orchestrator:
         
     def generate_summary(self, results: list) -> dict:
         total_replies = len(results)
-        toxic_replies = [r for r in results if r['category'] != 'non_toxic']
-        non_toxic_replies = [r for r in results if r['category'] == 'non_toxic']
 
-        category_counts = Counter(r['category'] for r in toxic_replies)
+        toxic_user_prompts = [r for r in results if r['user_prompt_category'] != 'non_toxic']
+        non_toxic_user_prompts = [r for r in results if r['user_prompt_category'] == 'non_toxic']
+        toxic_grok_replies = [r for r in results if r['grok_reply_category'] != 'non_toxic']
+        non_toxic_grok_replies = [r for r in results if r['grok_reply_category'] == 'non_toxic']
 
-        toxic_percentage = (len(toxic_replies) / total_replies) * 100 if total_replies > 0 else 0
-        non_toxic_percentage = (len(non_toxic_replies) / total_replies) * 100 if total_replies > 0 else 0
+        user_prompt_category_counts = Counter(r['user_prompt_category'] for r in toxic_user_prompts)
+        grok_reply_category_counts = Counter(r['grok_reply_category'] for r in toxic_grok_replies)
+
+        toxic_user_prompt_percentage = (len(toxic_user_prompts) / total_replies) * 100 if total_replies > 0 else 0
+        non_toxic_user_prompt_percentage = (len(non_toxic_user_prompts) / total_replies) * 100 if total_replies > 0 else 0
+        toxic_grok_reply_percentage = (len(toxic_grok_replies) / total_replies) * 100 if total_replies > 0 else 0
+        non_toxic_grok_reply_percentage = (len(non_toxic_grok_replies) / total_replies) * 100 if total_replies > 0 else 0
 
         summary = {
             "total_replies": total_replies,
-            "toxic_replies": len(toxic_replies),
-            "non_toxic_replies": len(non_toxic_replies),
-            "toxic_percentage": round(toxic_percentage, 2),
-            "non_toxic_percentage": round(non_toxic_percentage, 2),
-            "category_distribution": dict(category_counts)
+            "user_prompt": {
+                "toxic": len(toxic_user_prompts),
+                "non_toxic": len(non_toxic_user_prompts),
+                "toxic_percentage": round(toxic_user_prompt_percentage, 2),
+                "non_toxic_percentage": round(non_toxic_user_prompt_percentage, 2),
+                "category_distribution": dict(user_prompt_category_counts),
+            },
+            "grok_reply": {
+                "toxic": len(toxic_grok_replies),
+                "non_toxic": len(non_toxic_grok_replies),
+                "toxic_percentage": round(toxic_grok_reply_percentage, 2),
+                "non_toxic_percentage": round(non_toxic_grok_reply_percentage, 2),
+                "category_distribution": dict(grok_reply_category_counts),
+            },
         }
 
         return summary

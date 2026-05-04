@@ -78,6 +78,11 @@ class ToxicityAnalyzer:
         final_user_prompt_category = max(user_prompt_label_scores, key=user_prompt_label_scores.get)
         final_user_prompt_score = user_prompt_label_scores[final_user_prompt_category]
 
+        # Check if the score meets the threshold for that label or the general toxicity threshold
+        user_prompt_general_toxicity = float(user_prompt_toxicity_scores.get('toxicity', 0.0))
+        if final_user_prompt_score < specific_label_thresholds.get(final_user_prompt_category, 1.0) and user_prompt_general_toxicity < general_toxicity_threshold:
+            final_user_prompt_category = "non_toxic"
+
         # grok reply - pick the highest scoring label across all specific labels
         grok_reply_label_scores = {
             label: float(grok_reply_toxicity_scores.get(label, 0.0))
@@ -87,6 +92,11 @@ class ToxicityAnalyzer:
         
         final_grok_reply_category = max(grok_reply_label_scores, key=grok_reply_label_scores.get)
         final_grok_reply_score = grok_reply_label_scores[final_grok_reply_category]
+
+        # Check if the score meets the threshold for that label or the general toxicity threshold
+        grok_reply_general_toxicity = float(grok_reply_toxicity_scores.get('toxicity', 0.0))
+        if final_grok_reply_score < specific_label_thresholds.get(final_grok_reply_category, 1.0) and grok_reply_general_toxicity < general_toxicity_threshold:
+            final_grok_reply_category = "non_toxic"
 
         return {
             'conversationId': conversation_id,

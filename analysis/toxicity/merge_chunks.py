@@ -17,15 +17,27 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 
+# FIELDNAMES = [
+#     'conversationId',
+#     'threadId', 
+#     'user_message',
+#     'grok_reply',
+#     'language',
+#     'toxicity_score',
+#     'category',
+#     'role'
+# ]
+
 FIELDNAMES = [
     'conversationId',
     'threadId', 
-    'user_message',
+    'user_prompt',
     'grok_reply',
     'language',
-    'toxicity_score',
-    'category',
-    'role'
+    'user_prompt_toxicity_score',
+    'grok_reply_toxicity_score',
+    'user_prompt_category',
+    'grok_reply_category',
 ]
 
 OUTPUT_PATH = os.getenv("OUTPUT_PATH_TOXIC")
@@ -54,7 +66,7 @@ def get_reply_count(folder_paths: List[Path], pattern: str = "output_raw_chunk_*
     for folder in folder_paths:
         folder_path = base_path / folder
         files = sorted(folder_path.glob(pattern))
-        logger.info(f"Found {len(files)} files in {folder_path.name}")
+        logger.info(f"Found {len(files)} file(s) in {folder_path.name}")
 
         for file in files:
             filepath = folder_path / file
@@ -79,17 +91,20 @@ def extract_replies(replies: List[Dict]) -> List[Dict]:
         {
             'conversationId': reply.get('conversationId', ''),
             'threadId': reply.get('threadId', ''),
-            'user_message': reply.get('user_message', ''),
+            'user_prompt': reply.get('user_prompt', ''),
             'grok_reply': reply.get('grok_reply', ''),
             'language': reply.get('language', ''),
-            'toxicity_score': reply.get('toxicity_score', ''),
-            'category': reply.get('category', ''),
-            'role': reply.get('role', '')
+            'user_prompt_toxicity_score': reply.get('user_prompt_toxicity_score', ''),
+            'grok_reply_toxicity_score': reply.get('grok_reply_toxicity_score', ''),
+            'user_prompt_category': reply.get('user_prompt_category', ''),
+            'grok_reply_category': reply.get('grok_reply_category', ''),
         }
-        for reply in replies if reply.get('category', '') != 'non_toxic'
+        # for reply in replies if reply.get('user_prompt_category', '') != 'non_toxic'
+        for reply in replies
+
     ]
     
-    logger.info(f"Extracted {len(merged_data)} replies with {len(FIELDNAMES)} fields")
+    logger.info(f"Extracted {len(merged_data)} toxic replies with {len(FIELDNAMES)} fields")
     return merged_data
 
 
@@ -107,7 +122,7 @@ def save_merged_data_csv(merged_data: List[Dict], fieldnames: List[str]):
         logger.error(f"Failed to save merged data to {output_file}: {e}")
         raise
 
-def saved_merged_data_json(merged_data: List[Dict]):
+def save_merged_data_json(merged_data: List[Dict]):
     filename = 'toxicity_merged_results.json'
     output_file = base_path / filename
 
@@ -129,7 +144,7 @@ def main():
     merged_data = extract_replies(all_conversations)
 
     save_merged_data_csv(merged_data=merged_data, fieldnames=FIELDNAMES)
-    saved_merged_data_json(merged_data=merged_data)
+    save_merged_data_json(merged_data=merged_data)
 
 
 if __name__ == "__main__":

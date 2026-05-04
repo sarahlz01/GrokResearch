@@ -43,10 +43,10 @@ def main():
         config = load_config()
 
         if not config.file_path:
-            logger.error("Configuration error: file_path is not set. Please set FILE_PATH_DISCUSSION in .env")
+            logger.error("Configuration error: file_path is not set. Please set FILE_PATH in .env")
             sys.exit(2)
         if not config.output_path:
-            logger.error("Configuration error: output_path is not set. Please set OUTPUT_PATH_DISCUSSION in .env")
+            logger.error("Configuration error: output_path is not set. Please set OUTPUT_PATH in .env")
             sys.exit(2)
 
         # check file exists
